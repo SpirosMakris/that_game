@@ -26,12 +26,38 @@ struct Renderable {
     color: Color,
 }
 
+#[derive(Component)]
+struct LeftMover {}
+
+struct LeftWalkerSys {}
+
+impl<'a> System<'a> for LeftWalkerSys {
+    type SystemData = (ReadStorage<'a, LeftMover>,
+                        WriteStorage<'a, GridPosition>);
+    
+    fn run(&mut self, (lefty, mut pos) : Self::SystemData) {
+        for (_lefty, pos) in (&lefty, &mut pos).join() {
+            pos.x -= 1;
+            if pos.x < 0 { pos.x = 79; }
+        }
+    }
+}
+
 struct State {
     ecs: World,
 }
 
+impl State {
+    fn run_systems(&mut self) {
+        let mut lw = LeftWalkerSys{};
+        lw.run_now(&self.ecs);
+        self.ecs.maintain();
+    }
+}
+
 impl event::EventHandler for State {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
+        self.run_systems();
         Ok(())
     }
 
@@ -98,6 +124,7 @@ fn main() -> GameResult {
     // Register components
     gs.ecs.register::<GridPosition>();
     gs.ecs.register::<Renderable>();
+    gs.ecs.register::<LeftMover>();
 
     // Create an entity
     gs.ecs
@@ -122,6 +149,7 @@ fn main() -> GameResult {
                 bg: RGB::named(rltk::BLACK),
                 color: graphics::Color::new(1., 0., 0., 1.),
             })
+            .with(LeftMover {})
             .build();
     }
     
