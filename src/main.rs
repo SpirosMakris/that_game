@@ -5,11 +5,15 @@ extern crate specs_derive;
 
 use rltk::{Console, GameState, Rltk, RGB, VirtualKeyCode};
 
+use std::cmp::{min, max};
+
 use ggez;
-use ggez::event;
+use ggez::event::{self, KeyCode};
 use ggez::graphics::{self, Color};
 use ggez::nalgebra as na;
 use ggez::{Context, GameResult};
+use ggez::input::keyboard;
+
 
 #[derive(Component)]
 #[storage(VecStorage)]  // default is `DenseVecStorage`
@@ -43,6 +47,43 @@ impl<'a> System<'a> for LeftWalkerSys {
     }
 }
 
+
+#[derive(Component, Debug)]
+struct Player {}
+
+
+fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
+    let mut positions = ecs.write_storage::<GridPosition>();
+    let mut players = ecs.write_storage::<Player>();
+
+    for (_player, pos) in (&mut players, &mut positions).join() {
+        pos.x = min(79, max(0, pos.x + delta_x));
+        pos.y = min(49, max(0, pos.y + delta_y));
+    }
+}
+
+fn player_input(gs: &mut State, ctx: &Context) {
+    let pressed_keys = keyboard::pressed_keys(ctx);
+    if pressed_keys.is_empty() { return };
+    
+    if keyboard::is_key_pressed(ctx, KeyCode::Left) {
+        try_move_player(-1, 0, &mut gs.ecs);
+    }
+
+    if keyboard::is_key_pressed(ctx, KeyCode::Right) {
+        try_move_player(1, 0, &mut gs.ecs);
+    }
+
+    if keyboard::is_key_pressed(ctx, KeyCode::Up) {
+        try_move_player(0, -1, &mut gs.ecs);
+    }
+
+    if keyboard::is_key_pressed(ctx, KeyCode::Down) {
+        try_move_player(0, 1 , &mut gs.ecs);
+    }
+}
+
+
 struct State {
     ecs: World,
 }
@@ -56,7 +97,8 @@ impl State {
 }
 
 impl event::EventHandler for State {
-    fn update(&mut self, _ctx: &mut Context) -> GameResult {
+    fn update(&mut self, ctx: &mut Context) -> GameResult {
+        player_input(self, ctx);
         self.run_systems();
         Ok(())
     }
@@ -125,6 +167,7 @@ fn main() -> GameResult {
     gs.ecs.register::<GridPosition>();
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<LeftMover>();
+    gs.ecs.register::<Player>();
 
     // Create an entity
     gs.ecs
@@ -136,6 +179,7 @@ fn main() -> GameResult {
             bg: RGB::named(rltk::BLACK),
             color: graphics::Color::new(0., 1., 0., 1.),
         })
+        .with(Player {})
         .build();
     
     // Add a bunch more entities
