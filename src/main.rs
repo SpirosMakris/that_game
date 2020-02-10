@@ -83,6 +83,85 @@ fn player_input(gs: &mut State, ctx: &Context) {
     }
 }
 
+// MAP
+const GRID_TILE_SIZE: i32 = 16;
+
+#[derive(PartialEq, Copy, Clone)]
+enum TileType {
+    Wall,
+    Floor,
+}
+
+pub fn xy_idx(x: i32, y: i32) -> usize {
+    (y as usize * 80) + x as usize
+}
+
+fn new_map() -> Vec<TileType> {
+    let mut map = vec![TileType::Floor; 80 * 50];
+
+    // Make the boundaries walls
+    for x in 0..80 {
+        map[xy_idx(x, 0)]  = TileType::Wall;
+        map[xy_idx(x, 49)] = TileType::Wall;
+    }
+
+    for y in 0..50 {
+        map[xy_idx(0, y)] = TileType::Wall;
+        map[xy_idx(79, y)] = TileType::Wall;
+    }
+
+    // Now we'll randomly splat a bunch of walls.
+    // It won't be pretty, but it's a decent illustration.
+    // First obtain the thread-local RNG. @RLTK
+    let mut rng = rltk::RandomNumberGenerator::new();
+
+    // Only 1/10th of the map will be walls
+    for _i in 0..400 {
+        let x = rng.roll_dice(1, 79);
+        let y = rng.roll_dice(1, 49);
+
+        let idx = xy_idx(x, y);
+        // Center is always Floor -> Player's starting point
+        if idx != xy_idx(40, 25) {
+            map[idx] = TileType::Wall;
+        }
+    }
+
+    map
+}
+
+fn draw_map(map: &[TileType], ctx: &mut Context) -> GameResult {
+    let mut x = 0;
+    let mut y = 0;
+
+    for tile in map.iter() {
+        // Render a tile depending upon it's tiletype
+        let mut color = Color::new(0.0, 0.0, 0.0, 1.0);
+        match tile {
+            TileType::Floor => {
+                color = Color::new(0.0, 1.0, 0.0, 0.5);
+            },
+            TileType::Wall => {
+                color = Color::new(1.0, 0.0, 0.0, 1.0);
+            }
+        }
+        
+        let rect = graphics::Rect::new_i32(x * GRID_TILE_SIZE, y * GRID_TILE_SIZE, GRID_TILE_SIZE, GRID_TILE_SIZE);
+        let r1_mesh = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, color)?;
+        graphics::draw(ctx, &r1_mesh, graphics::DrawParam::default())?;
+
+        // Move the coordinates
+        x += 1;
+        if x > 79 {
+            x = 0;
+            y += 1;
+        }
+    }
+
+    Ok(())
+}
+
+// GAME STATE
 
 struct State {
     ecs: World,
@@ -106,10 +185,12 @@ impl event::EventHandler for State {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
+        // Render our map
+        let map = self.ecs.fetch::<Vec<TileType>>();
+        draw_map(&map, ctx)?;
+
         let positions = self.ecs.read_storage::<GridPosition>();
         let renderables = self.ecs.read_storage::<Renderable>();
-
-        const GRID_TILE_SIZE: i32 = 16;
 
         for (pos, rnd) in (&positions, &renderables).join() {
 
@@ -124,10 +205,8 @@ impl event::EventHandler for State {
             )?;
 
             graphics::draw(ctx, &circle, (na::Point2::new( (pos.x * GRID_TILE_SIZE) as f32, (pos.y * GRID_TILE_SIZE) as f32), ))?;
-
-            
-            
         }
+
         
         graphics::present(ctx)?;
         Ok(())
@@ -169,6 +248,9 @@ fn main() -> GameResult {
     gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
 
+    // Add a map to ECS resources
+    gs.ecs.insert(new_map());
+
     // Create an entity
     gs.ecs
         .create_entity()
@@ -198,6 +280,8 @@ fn main() -> GameResult {
     }
     
     // rltk::main_loop(context, gs);
+
+    // @TODO: Screen dims to use for (80 x 50 , tile size 16) = 1280 x 800
 
     let cb = ggez::ContextBuilder::new("THAT GAME - super simple", "Spiros Makris");
     let (ctx, event_loop) = &mut cb.build()?;
