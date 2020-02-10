@@ -13,6 +13,7 @@ use ggez::graphics::{self, Color};
 use ggez::nalgebra as na;
 use ggez::{Context, GameResult};
 use ggez::input::keyboard;
+use ggez::timer;
 
 
 #[derive(Component)]
@@ -177,6 +178,11 @@ impl State {
 
 impl event::EventHandler for State {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
+        if timer::ticks(ctx) % 100 == 0 {
+            println!("Dt frame time: {:?}", timer::delta(ctx));
+            println!("Average FPS: {}", timer::fps(ctx));
+        }
+
         player_input(self, ctx);
         self.run_systems();
         Ok(())
