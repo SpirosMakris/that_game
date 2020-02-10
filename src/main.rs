@@ -132,24 +132,27 @@ fn new_map() -> Vec<TileType> {
 }
 
 fn draw_map(map: &[TileType], ctx: &mut Context) -> GameResult {
+    use ggez::graphics::{MeshBuilder, DrawMode};
+
     let mut x = 0;
     let mut y = 0;
 
+    let mut mesh = &mut MeshBuilder::new();
+
     for tile in map.iter() {
         // Render a tile depending upon it's tiletype
-        let mut color = Color::new(0.0, 0.0, 0.0, 1.0);
-        match tile {
+        let color = match tile {
             TileType::Floor => {
-                color = Color::new(0.0, 1.0, 0.0, 0.5);
+                Color::new(0.0, 1.0, 0.0, 0.5)
             },
             TileType::Wall => {
-                color = Color::new(1.0, 0.0, 0.0, 1.0);
+                Color::new(1.0, 0.0, 0.0, 1.0)
             }
-        }
-        
+        };
         let rect = graphics::Rect::new_i32(x * GRID_TILE_SIZE, y * GRID_TILE_SIZE, GRID_TILE_SIZE, GRID_TILE_SIZE);
-        let r1_mesh = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, color)?;
-        graphics::draw(ctx, &r1_mesh, graphics::DrawParam::default())?;
+        mesh = mesh.rectangle(DrawMode::fill(), rect, color);
+        // let r1_mesh = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, color)?;
+        // graphics::draw(ctx, &r1_mesh, graphics::DrawParam::default())?;
 
         // Move the coordinates
         x += 1;
@@ -158,7 +161,10 @@ fn draw_map(map: &[TileType], ctx: &mut Context) -> GameResult {
             y += 1;
         }
     }
+    
+    let mesh = mesh.build(ctx)?;
 
+    graphics::draw(ctx, &mesh, graphics::DrawParam::default())?;
     Ok(())
 }
 
