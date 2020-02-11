@@ -56,10 +56,14 @@ struct Player {}
 fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<GridPosition>();
     let mut players = ecs.write_storage::<Player>();
+    let map = ecs.fetch::<Vec<TileType>>();
 
     for (_player, pos) in (&mut players, &mut positions).join() {
-        pos.x = min(79, max(0, pos.x + delta_x));
-        pos.y = min(49, max(0, pos.y + delta_y));
+        let destination_idx = xy_idx(pos.x + delta_x, pos.y + delta_y);
+        if map[destination_idx] != TileType::Wall {
+            pos.x = min(79, max(0, pos.x + delta_x));
+            pos.y = min(49, max(0, pos.y + delta_y));
+        }
     }
 }
 
@@ -216,7 +220,7 @@ impl event::EventHandler for State {
                 rnd.color
             )?;
 
-            graphics::draw(ctx, &circle, (na::Point2::new( (pos.x * GRID_TILE_SIZE) as f32, (pos.y * GRID_TILE_SIZE) as f32), ))?;
+            graphics::draw(ctx, &circle, (na::Point2::new( (pos.x * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32, (pos.y * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32), ))?;
         }
 
         
