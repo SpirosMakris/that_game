@@ -3,22 +3,27 @@ use specs::prelude::*;
 #[macro_use]
 extern crate specs_derive;
 
-use rltk::{Console, GameState, Rltk, RGB, VirtualKeyCode};
+// use rltk::{Console, GameState, Rltk, RGB, VirtualKeyCode};
 
-use std::cmp::{min, max};
+
 
 use ggez;
-use ggez::event::{self, KeyCode};
-use ggez::graphics::{self, Color};
+use ggez::event;
+use ggez::graphics as gfx;
 use ggez::nalgebra as na;
 use ggez::{Context, GameResult};
-use ggez::input::keyboard;
 use ggez::timer;
 
 
 
 mod components;
 pub use components::*;
+mod rect32;
+pub use rect32::Rect32;
+mod player;
+use player::*;
+mod map;
+pub use map::*;
 
 #[derive(Component)]
 struct LeftMover {}
@@ -40,128 +45,9 @@ struct LeftMover {}
 
 
 
-fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
-    let mut positions = ecs.write_storage::<GridPosition>();
-    let mut players = ecs.write_storage::<Player>();
-    let map = ecs.fetch::<Vec<TileType>>();
-
-    for (_player, pos) in (&mut players, &mut positions).join() {
-        let destination_idx = xy_idx(pos.x + delta_x, pos.y + delta_y);
-        if map[destination_idx] != TileType::Wall {
-            pos.x = min(79, max(0, pos.x + delta_x));
-            pos.y = min(49, max(0, pos.y + delta_y));
-        }
-    }
-}
-
-fn player_input(gs: &mut State, ctx: &Context) {
-    let pressed_keys = keyboard::pressed_keys(ctx);
-    if pressed_keys.is_empty() { return };
-    
-    if keyboard::is_key_pressed(ctx, KeyCode::Left) {
-        try_move_player(-1, 0, &mut gs.ecs);
-    }
-
-    if keyboard::is_key_pressed(ctx, KeyCode::Right) {
-        try_move_player(1, 0, &mut gs.ecs);
-    }
-
-    if keyboard::is_key_pressed(ctx, KeyCode::Up) {
-        try_move_player(0, -1, &mut gs.ecs);
-    }
-
-    if keyboard::is_key_pressed(ctx, KeyCode::Down) {
-        try_move_player(0, 1 , &mut gs.ecs);
-    }
-}
-
-// MAP
-const GRID_TILE_SIZE: i32 = 16;
-
-#[derive(PartialEq, Copy, Clone)]
-enum TileType {
-    Wall,
-    Floor,
-}
-
-pub fn xy_idx(x: i32, y: i32) -> usize {
-    (y as usize * 80) + x as usize
-}
-
-fn new_map() -> Vec<TileType> {
-    let mut map = vec![TileType::Floor; 80 * 50];
-
-    // Make the boundaries walls
-    for x in 0..80 {
-        map[xy_idx(x, 0)]  = TileType::Wall;
-        map[xy_idx(x, 49)] = TileType::Wall;
-    }
-
-    for y in 0..50 {
-        map[xy_idx(0, y)] = TileType::Wall;
-        map[xy_idx(79, y)] = TileType::Wall;
-    }
-
-    // Now we'll randomly splat a bunch of walls.
-    // It won't be pretty, but it's a decent illustration.
-    // First obtain the thread-local RNG. @RLTK
-    let mut rng = rltk::RandomNumberGenerator::new();
-
-    // Only 1/10th of the map will be walls
-    for _i in 0..400 {
-        let x = rng.roll_dice(1, 79);
-        let y = rng.roll_dice(1, 49);
-
-        let idx = xy_idx(x, y);
-        // Center is always Floor -> Player's starting point
-        if idx != xy_idx(40, 25) {
-            map[idx] = TileType::Wall;
-        }
-    }
-
-    map
-}
-
-fn draw_map(map: &[TileType], ctx: &mut Context) -> GameResult {
-    use ggez::graphics::{MeshBuilder, DrawMode};
-
-    let mut x = 0;
-    let mut y = 0;
-
-    let mut mesh = &mut MeshBuilder::new();
-
-    for tile in map.iter() {
-        // Render a tile depending upon it's tiletype
-        let color = match tile {
-            TileType::Floor => {
-                Color::new(0.0, 1.0, 0.0, 0.5)
-            },
-            TileType::Wall => {
-                Color::new(1.0, 0.0, 0.0, 1.0)
-            }
-        };
-        let rect = graphics::Rect::new_i32(x * GRID_TILE_SIZE, y * GRID_TILE_SIZE, GRID_TILE_SIZE, GRID_TILE_SIZE);
-        mesh = mesh.rectangle(DrawMode::fill(), rect, color);
-        // let r1_mesh = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, color)?;
-        // graphics::draw(ctx, &r1_mesh, graphics::DrawParam::default())?;
-
-        // Move the coordinates
-        x += 1;
-        if x > 79 {
-            x = 0;
-            y += 1;
-        }
-    }
-    
-    let mesh = mesh.build(ctx)?;
-
-    graphics::draw(ctx, &mesh, graphics::DrawParam::default())?;
-    Ok(())
-}
-
 // GAME STATE
 
-struct State {
+pub struct State {
     ecs: World,
 }
 
@@ -186,7 +72,7 @@ impl event::EventHandler for State {
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        graphics::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
+        gfx::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
         // Render our map
         let map = self.ecs.fetch::<Vec<TileType>>();
@@ -197,9 +83,9 @@ impl event::EventHandler for State {
 
         for (pos, rnd) in (&positions, &renderables).join() {
 
-            let circle = graphics::Mesh::new_circle(
+            let circle = gfx::Mesh::new_circle(
                 ctx, 
-                graphics::DrawMode::fill(),
+                gfx::DrawMode::fill(),
                 na::Point2::new(0.0, 0.0), 
                 10.0, 
                 2.0,
@@ -207,11 +93,11 @@ impl event::EventHandler for State {
                 rnd.color
             )?;
 
-            graphics::draw(ctx, &circle, (na::Point2::new( (pos.x * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32, (pos.y * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32), ))?;
+            gfx::draw(ctx, &circle, (na::Point2::new( (pos.x * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32, (pos.y * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32), ))?;
         }
 
         
-        graphics::present(ctx)?;
+        gfx::present(ctx)?;
         Ok(())
     }
 }
@@ -252,14 +138,14 @@ fn main() -> GameResult {
     gs.ecs.register::<Player>();
 
     // Add a map to ECS resources
-    gs.ecs.insert(new_map());
+    gs.ecs.insert(new_map_test());
 
     // Create an entity
     gs.ecs
         .create_entity()
         .with(GridPosition {x: 40, y: 25})
         .with(Renderable {
-            color: graphics::Color::new(0., 1., 0., 1.),
+            color: gfx::Color::new(0., 1., 0., 1.),
         })
         .with(Player {})
         .build();
@@ -270,7 +156,7 @@ fn main() -> GameResult {
             .create_entity()
             .with(GridPosition { x: i * 7, y: 20 })
             .with(Renderable {
-                color: graphics::Color::new(1., 0., 0., 1.),
+                color: gfx::Color::new(1., 0., 0., 1.),
             })
             .with(LeftMover {})
             .build();
