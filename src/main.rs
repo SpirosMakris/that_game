@@ -137,13 +137,17 @@ fn main() -> GameResult {
     gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
 
+    let (rooms, map) = new_map_rooms_and_corridors();
     // Add a map to ECS resources
-    gs.ecs.insert(new_map_test());
+    gs.ecs.insert(map);
 
-    // Create an entity
+    // Place player in the center of 1st room
+    let (player_x, player_y) = rooms[0].center();
+
+    // Create player
     gs.ecs
         .create_entity()
-        .with(GridPosition {x: 40, y: 25})
+        .with(GridPosition {x: player_x, y: player_y})
         .with(Renderable {
             color: gfx::Color::new(0., 1., 0., 1.),
         })
@@ -168,6 +172,11 @@ fn main() -> GameResult {
 
     let cb = ggez::ContextBuilder::new("THAT GAME - super simple", "Spiros Makris");
     let (ctx, event_loop) = &mut cb.build()?;
+
+    // @TODO: Push this to ContextBuilder creation
+    // let w_mode = ggez::conf::WindowMode::default()
+    //     .min_dimensions(1280., 720.);
+    // gfx::set_mode(ctx, w_mode)?;
     
     event::run(ctx, event_loop, &mut gs)
 }
