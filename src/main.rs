@@ -137,12 +137,11 @@ fn main() -> GameResult {
     gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
 
-    let (rooms, map) = new_map_rooms_and_corridors();
     // Add a map to ECS resources
+    // and placelace player in the center of 1st room
+    let map: Map = Map::new_map_rooms_and_corridors();
+    let (player_x, player_y) = map.rooms[0].center();
     gs.ecs.insert(map);
-
-    // Place player in the center of 1st room
-    let (player_x, player_y) = rooms[0].center();
 
     // Create player
     gs.ecs
