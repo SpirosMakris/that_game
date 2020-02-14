@@ -28,15 +28,21 @@ pub fn player_input(gs: &mut State, ctx: &Context) {
   let pressed_keys = keyboard::pressed_keys(ctx);
   if pressed_keys.is_empty() { return };
   
-  if keyboard::is_key_pressed(ctx, KeyCode::Left) {
+  if keyboard::is_key_pressed(ctx, KeyCode::Left) ||
+     keyboard::is_key_pressed(ctx, KeyCode::Numpad4) ||
+     keyboard::is_key_pressed(ctx, KeyCode::H) {
       try_move_player(-1, 0, &mut gs.ecs);
   }
 
-  if keyboard::is_key_pressed(ctx, KeyCode::Right) {
+  if keyboard::is_key_pressed(ctx, KeyCode::Right) ||
+     keyboard::is_key_pressed(ctx, KeyCode::Numpad6) ||
+     keyboard::is_key_pressed(ctx, KeyCode::L) {
       try_move_player(1, 0, &mut gs.ecs);
   }
 
-  if keyboard::is_key_pressed(ctx, KeyCode::Up) {
+  if keyboard::is_key_pressed(ctx, KeyCode::Up) ||
+     keyboard::is_key_pressed(ctx, KeyCode::Numpad8) ||
+     keyboard::is_key_pressed(ctx, KeyCode::K) {
       try_move_player(0, -1, &mut gs.ecs);
   }
 
