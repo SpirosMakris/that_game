@@ -19,6 +19,7 @@ pub struct Map {
     pub rooms: Vec<Rect32>,
     pub width: i32,
     pub height: i32,
+    pub revealed_tiles: Vec<bool>,
 }
 
 impl Map {
@@ -66,7 +67,11 @@ impl Map {
             rooms: Vec::new(),
             width: 80,
             height: 50,
+            revealed_tiles: vec![false; 80 * 50],
         };
+
+        // @TODO: Remove. Just a test to see if we can actually render an empty map
+        map.revealed_tiles[0] = true;
 
         const MAX_ROOMS : i32 = 30;
         const MIN_SIZE : i32 = 6;
@@ -130,9 +135,49 @@ impl rltk::BaseMap for Map {
     }
 }
 
+/// Only draw tiles in the player's viewshed, using Map's revelead tile cache
+pub fn draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
+    let map = ecs.fetch::<Map>();
+
+    let mut y = 0;
+    let mut x = 0;
+
+    let mut map_mesh = &mut gfx::MeshBuilder::new();
+
+    for (idx, tile) in map.tiles.iter().enumerate() {
+        // Render a tile depending upon the tile type
+        if map.revealed_tiles[idx] {
+            let color = match tile {
+                TileType::Floor => {
+                    gfx::Color::new(0.0, 1.0, 0.0, 0.5)
+                },
+                TileType::Wall => {
+                    gfx::Color::new(1.0, 0.0, 0.0, 1.0)
+                }
+            };
+
+            let rect = gfx::Rect::new_i32(x * GRID_TILE_SIZE, y * GRID_TILE_SIZE, GRID_TILE_SIZE, GRID_TILE_SIZE);
+            map_mesh = map_mesh.rectangle(gfx::DrawMode::fill(), rect, color);
+
+        }
+
+        // Move the coordinates
+        x += 1;
+        if x > 79 {
+            x = 0;
+            y += 1;
+        }
+    }
+
+    let map_mesh = map_mesh.build(ctx)?;
+    gfx::draw(ctx, &map_mesh, gfx::DrawParam::default())?;
+
+    Ok(())
+}
+
 
 /// Only draws tiles in the player's viewshed
-pub fn draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
+pub fn __draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
     use super::components::{Viewshed, Player};
 
     let mut viewsheds = ecs.write_storage::<Viewshed>();
@@ -171,7 +216,7 @@ pub fn draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
 
 
         }
-        
+
         let map_mesh = map_mesh.build(ctx)?;
         gfx::draw(ctx, &map_mesh, gfx::DrawParam::default())?;
     }
@@ -179,7 +224,7 @@ pub fn draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
     Ok(())
 }
 
-pub fn __draw_map(map: &[TileType], ctx: &mut Context) -> GameResult {
+pub fn ___draw_map(map: &[TileType], ctx: &mut Context) -> GameResult {
 
   let mut x = 0;
   let mut y = 0;
