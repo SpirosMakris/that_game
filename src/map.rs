@@ -20,6 +20,7 @@ pub struct Map {
     pub width: i32,
     pub height: i32,
     pub revealed_tiles: Vec<bool>,
+    pub visible_tiles: Vec<bool>,
 }
 
 impl Map {
@@ -68,6 +69,7 @@ impl Map {
             width: 80,
             height: 50,
             revealed_tiles: vec![false; 80 * 50],
+            visible_tiles: vec![false; 80 * 50],
         };
 
         // @TODO: Remove. Just a test to see if we can actually render an empty map
@@ -147,7 +149,7 @@ pub fn draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
     for (idx, tile) in map.tiles.iter().enumerate() {
         // Render a tile depending upon the tile type
         if map.revealed_tiles[idx] {
-            let color = match tile {
+            let mut color = match tile {
                 TileType::Floor => {
                     gfx::Color::new(0.0, 1.0, 0.0, 0.5)
                 },
@@ -155,6 +157,9 @@ pub fn draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
                     gfx::Color::new(1.0, 0.0, 0.0, 1.0)
                 }
             };
+
+            // Grayscale the color if it's not currently visible
+            if !map.visible_tiles[idx] { color = gfx::Color::new(0.5, 0.5, 0.5, 1.0)}
 
             let rect = gfx::Rect::new_i32(x * GRID_TILE_SIZE, y * GRID_TILE_SIZE, GRID_TILE_SIZE, GRID_TILE_SIZE);
             map_mesh = map_mesh.rectangle(gfx::DrawMode::fill(), rect, color);

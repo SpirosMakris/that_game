@@ -33,11 +33,18 @@ impl<'a> System<'a> for VisibilitySystem {
         });
         
         // If this is a player update map to reveal what they see
-        let p: Option<&Player> = player.get(ent);
-        if let Some(p) = p {
+        let _p: Option<&Player> = player.get(ent);
+        if let Some(_p) = _p {
+          // Clear the previously visible tiles, they have changed
+          for t in map.visible_tiles.iter_mut() { *t = false };
+
           for vis in viewshed.visible_tiles.iter() {
             let idx = map.xy_idx(vis.x, vis.y);
+            // Add (but not cleared)
             map.revealed_tiles[idx] = true;
+            // Add (cleared just above)
+            map.visible_tiles[idx] = true;
+
           }
         }
       }
