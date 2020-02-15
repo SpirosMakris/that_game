@@ -160,7 +160,7 @@ fn main() -> GameResult {
             color: gfx::Color::new(0., 1., 0., 1.),
         })
         .with(Player {})
-        .with(Viewshed {visible_tiles: Vec::new(), range: 8 })
+        .with(Viewshed {visible_tiles: Vec::new(), range: 8, dirty: true })
         .build();
     
     // Add a bunch more entities

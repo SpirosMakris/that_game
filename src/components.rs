@@ -21,4 +21,5 @@ pub struct Player {}
 pub struct Viewshed {
   pub visible_tiles: Vec<rltk::Point>,  // @TODO: See if this needs replacing?
   pub range: i32,
+  pub dirty: bool,
 }
