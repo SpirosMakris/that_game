@@ -1,6 +1,8 @@
 use ggez::graphics as gfx;
 use ggez::{Context, GameResult};
 use std::cmp::{max, min};
+extern crate specs;
+use specs::prelude::*;
 
 use super::{Rect32};
 
@@ -116,49 +118,68 @@ impl Map {
 }
 
 
-// /// Makes a map with solid boundaries and 400 randomly placed walls. No guarantees that it won't
-// /// look awful.
-// pub fn new_map_test() -> Vec<TileType> {
-//   let mut map = vec![TileType::Floor; 80 * 50];
+impl rltk::Algorithm2D for Map {
+    fn dimensions(&self) -> rltk::Point {
+        rltk::Point::new(self.width, self.height)
+    }
+}
 
-//   // Make the boundaries walls
-//   for x in 0..80 {
-//       map[xy_idx(x, 0)]  = TileType::Wall;
-//       map[xy_idx(x, 49)] = TileType::Wall;
-//   }
-
-//   for y in 0..50 {
-//       map[xy_idx(0, y)] = TileType::Wall;
-//       map[xy_idx(79, y)] = TileType::Wall;
-//   }
-
-//   // Now we'll randomly splat a bunch of walls.
-//   // It won't be pretty, but it's a decent illustration.
-//   // First obtain the thread-local RNG. @RLTK
-//   let mut rng = rltk::RandomNumberGenerator::new();
-
-//   // Only 1/10th of the map will be walls
-//   for _i in 0..400 {
-//       let x = rng.roll_dice(1, 79);
-//       let y = rng.roll_dice(1, 49);
-
-//       let idx = xy_idx(x, y);
-//       // Center is always Floor -> Player's starting point
-//       if idx != xy_idx(40, 25) {
-//           map[idx] = TileType::Wall;
-//       }
-//   }
-
-//   map
-// }
+impl rltk::BaseMap for Map {
+    fn is_opaque(&self, idx: usize) -> bool {
+        self.tiles[idx] == TileType::Wall
+    }
+}
 
 
+/// Only draws tiles in the player's viewshed
+pub fn draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
+    use super::components::{Viewshed, Player};
+
+    let mut viewsheds = ecs.write_storage::<Viewshed>();
+    let mut players = ecs.write_storage::<Player>();
+    let map = ecs.fetch::<Map>();
+
+    for (_player, viewshed) in (&mut players, &mut viewsheds).join() {
+        let mut y = 0;
+        let mut x = 0;
+
+        let mut map_mesh = &mut gfx::MeshBuilder::new();
+
+        for tile in map.tiles.iter() {
+            // Render a tile depending on the tile type
+            let pt = rltk::Point::new(x,y);
+            if viewshed.visible_tiles.contains(&pt) {
+                let color = match tile {
+                    TileType::Floor => {
+                        gfx::Color::new(0.0, 1.0, 0.0, 0.5)
+                    },
+                    TileType::Wall => {
+                        gfx::Color::new(1.0, 0.0, 0.0, 1.0)
+                    }
+                };
+
+                let rect = gfx::Rect::new_i32(x * GRID_TILE_SIZE, y * GRID_TILE_SIZE, GRID_TILE_SIZE, GRID_TILE_SIZE);
+                map_mesh = map_mesh.rectangle(gfx::DrawMode::fill(), rect, color);
+            }
+
+            // Move the coordinates
+            x += 1;
+            if x > 79 {
+                x = 0;
+                y += 1;
+            }
 
 
+        }
+        
+        let map_mesh = map_mesh.build(ctx)?;
+        gfx::draw(ctx, &map_mesh, gfx::DrawParam::default())?;
+    }
 
+    Ok(())
+}
 
-
-pub fn draw_map(map: &[TileType], ctx: &mut Context) -> GameResult {
+pub fn __draw_map(map: &[TileType], ctx: &mut Context) -> GameResult {
 
   let mut x = 0;
   let mut y = 0;

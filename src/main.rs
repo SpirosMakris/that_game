@@ -24,6 +24,8 @@ mod player;
 use player::*;
 mod map;
 pub use map::*;
+mod visibility_system;
+use visibility_system::VisibilitySystem;
 
 #[derive(Component)]
 struct LeftMover {}
@@ -55,6 +57,12 @@ impl State {
     fn run_systems(&mut self) {
         // let mut lw = LeftWalkerSys{};
         // lw.run_now(&self.ecs);
+
+        // Run visibility system
+        let mut vis = VisibilitySystem{};
+        vis.run_now(&self.ecs);
+
+        // Update world after running systems
         self.ecs.maintain();
     }
 }
@@ -75,8 +83,8 @@ impl event::EventHandler for State {
         gfx::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
         // Render our map
-        let map = self.ecs.fetch::<Vec<TileType>>();
-        draw_map(&map, ctx)?;
+        // let map = self.ecs.fetch::<Vec<TileType>>();
+        draw_map(&self.ecs, ctx)?;
 
         let positions = self.ecs.read_storage::<GridPosition>();
         let renderables = self.ecs.read_storage::<Renderable>();
@@ -136,6 +144,7 @@ fn main() -> GameResult {
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
+    gs.ecs.register::<Viewshed>();
 
     // Add a map to ECS resources
     // and placelace player in the center of 1st room
@@ -151,6 +160,7 @@ fn main() -> GameResult {
             color: gfx::Color::new(0., 1., 0., 1.),
         })
         .with(Player {})
+        .with(Viewshed {visible_tiles: Vec::new(), range: 8 })
         .build();
     
     // Add a bunch more entities
