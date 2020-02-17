@@ -26,6 +26,8 @@ mod map;
 pub use map::*;
 mod visibility_system;
 use visibility_system::VisibilitySystem;
+mod monster_ai_system;
+use monster_ai_system::MonsterAISystem;
 
 
 // GAME STATE
@@ -42,6 +44,10 @@ impl State {
         // Run visibility system
         let mut vis = VisibilitySystem{};
         vis.run_now(&self.ecs);
+
+        // Run monster AI system
+        let mut mob = MonsterAISystem{};
+        mob.run_now(&self.ecs);
 
         // Update world after running systems
         self.ecs.maintain();
@@ -70,6 +76,8 @@ impl event::EventHandler for State {
         let positions = self.ecs.read_storage::<GridPosition>();
         let renderables = self.ecs.read_storage::<Renderable>();
         let map = self.ecs.fetch::<Map>();
+
+
 
         for (pos, render) in (&positions, &renderables).join() {
 
@@ -128,6 +136,7 @@ fn main() -> GameResult {
     gs.ecs.register::<Renderable>();
     gs.ecs.register::<Player>();
     gs.ecs.register::<Viewshed>();
+    gs.ecs.register::<Monster>();
 
     // Add a map to ECS resources
     // and placelace player in the center of 1st room
@@ -137,27 +146,37 @@ fn main() -> GameResult {
     // Create player
     gs.ecs
         .create_entity()
-        .with(GridPosition {x: player_x, y: player_y})
-        .with(Renderable {
-            color: gfx::Color::new(0., 1., 0., 1.),
-        })
-        .with(Player {})
-        .with(Viewshed {visible_tiles: Vec::new(), range: 8, dirty: true })
+            .with(GridPosition {x: player_x, y: player_y})
+            .with(Renderable {
+                color: gfx::Color::new(0., 1., 0., 1.),
+            })
+            .with(Player {})
+            .with(Viewshed {visible_tiles: Vec::new(), range: 8, dirty: true })
         .build();
     
-    // Add some monsters
+    // Add some monsters  
+    let mut rng = rltk::RandomNumberGenerator::new();
+
     for room in map.rooms.iter().skip(1) {
 
         let (x, y) = room.center();
+        let color: gfx::Color;
+        let roll = rng.roll_dice(1, 2);
+
+        match roll {
+            1 => color = gfx::Color::new(1.0, 0.0, 0.75, 1.0),
+            _ => color = gfx::Color::new(1.0, 0.0, 0.1, 1.0),
+        }
 
         gs.ecs
         .create_entity()
             .with(GridPosition { x, y })
             .with(Renderable {
-                color: gfx::Color::new(1., 0., 0., 1.),
+                // color: gfx::Color::new(1., 0., 0., 1.),
+                color
             })
             .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true})
-
+            .with(Monster {})
         .build();
     }
 
