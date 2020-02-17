@@ -32,14 +32,17 @@ use monster_ai_system::MonsterAISystem;
 
 // GAME STATE
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum RunState { Waiting, Running }
+
+
 pub struct State {
-    ecs: World,
+    pub ecs: World,
+    pub runstate: RunState,
 }
 
 impl State {
     fn run_systems(&mut self) {
-        // let mut lw = LeftWalkerSys{};
-        // lw.run_now(&self.ecs);
 
         // Run visibility system
         let mut vis = VisibilitySystem{};
@@ -61,8 +64,18 @@ impl event::EventHandler for State {
             println!("Average FPS: {}", timer::fps(ctx));
         }
 
-        player_input(self, ctx);
-        self.run_systems();
+        match self.runstate {
+            RunState::Running => {
+                self.run_systems();
+                self.runstate = RunState::Waiting;
+            },
+            RunState::Waiting => {
+                self.runstate = player_input(self, ctx);
+            }
+        }
+
+        // player_input(self, ctx);
+        // self.run_systems();
         Ok(())
     }
 
@@ -102,33 +115,13 @@ impl event::EventHandler for State {
     }
 }
 
-// impl GameState for State {
-//     fn tick(&mut self, ctx: &mut Rltk) {
-//         ctx.cls();
-//         ctx.print(1, 1, "Hello Rust World!");
-
-//         // Render out our entities
-//         let positions = self.ecs.read_storage::<GridPosition>();
-//         let renderables = self.ecs.read_storage::<Renderable>();
-
-//         for (pos, render) in (&positions, &renderables).join() {
-//             ctx.set(pos.x, pos.y, render.fg, render.bg, render.glyph);
-//         }
-//     }
-// }
-
-
 
 fn main() -> GameResult {
-    // use rltk::RltkBuilder;
-
-    // let context = RltkBuilder::simple80x50()
-    //     .with_title("Roguelike Tut - THAT Game")
-    //     .build();
     
     // Create State with ECS world in it.
     let mut gs = State {
-        ecs: World::new()
+        ecs: World::new(),
+        runstate: RunState::Running,
     };
 
     // Register components

@@ -4,7 +4,7 @@ use ggez::Context;
 
 use specs::prelude::*;
 
-use super::{GridPosition, Player, TileType, Map, State, Viewshed};
+use super::{GridPosition, Player, TileType, Map, State, Viewshed, RunState};
 
 use std::cmp::{min, max};
 
@@ -28,31 +28,47 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
   }
 }
 
-pub fn player_input(gs: &mut State, ctx: &Context) {
+pub fn player_input(gs: &mut State, ctx: &Context) -> RunState {
+
+  // Player movement
+  // @TODO: Return RunState::Waiting when none active key is pressed!!!!!!
   let pressed_keys = keyboard::pressed_keys(ctx);
-  if pressed_keys.is_empty() { return };
+  if pressed_keys.is_empty() { return RunState::Waiting }
+  else {
+
+    if keyboard::is_key_pressed(ctx, KeyCode::Left) ||
+       keyboard::is_key_pressed(ctx, KeyCode::Numpad4) ||
+       keyboard::is_key_pressed(ctx, KeyCode::H) {
+        try_move_player(-1, 0, &mut gs.ecs);
+        // @TODO: Fix!!!!
+        return RunState::Running;
+    }
   
-  if keyboard::is_key_pressed(ctx, KeyCode::Left) ||
-     keyboard::is_key_pressed(ctx, KeyCode::Numpad4) ||
-     keyboard::is_key_pressed(ctx, KeyCode::H) {
-      try_move_player(-1, 0, &mut gs.ecs);
+    if keyboard::is_key_pressed(ctx, KeyCode::Right) ||
+       keyboard::is_key_pressed(ctx, KeyCode::Numpad6) ||
+       keyboard::is_key_pressed(ctx, KeyCode::L) {
+        try_move_player(1, 0, &mut gs.ecs);
+        // @TODO: Fix!!!!
+        return RunState::Running;
+    }
+  
+    if keyboard::is_key_pressed(ctx, KeyCode::Up) ||
+       keyboard::is_key_pressed(ctx, KeyCode::Numpad8) ||
+       keyboard::is_key_pressed(ctx, KeyCode::K) {
+        try_move_player(0, -1, &mut gs.ecs);
+        // @TODO: Fix!!!!
+        return RunState::Running;
+    }
+  
+    if keyboard::is_key_pressed(ctx, KeyCode::Down) ||
+       keyboard::is_key_pressed(ctx, KeyCode::Numpad2) ||
+       keyboard::is_key_pressed(ctx, KeyCode::J) {
+        try_move_player(0, 1 , &mut gs.ecs);
+        // @TODO: Fix!!!!
+        return RunState::Running;
+    }
+
   }
 
-  if keyboard::is_key_pressed(ctx, KeyCode::Right) ||
-     keyboard::is_key_pressed(ctx, KeyCode::Numpad6) ||
-     keyboard::is_key_pressed(ctx, KeyCode::L) {
-      try_move_player(1, 0, &mut gs.ecs);
-  }
-
-  if keyboard::is_key_pressed(ctx, KeyCode::Up) ||
-     keyboard::is_key_pressed(ctx, KeyCode::Numpad8) ||
-     keyboard::is_key_pressed(ctx, KeyCode::K) {
-      try_move_player(0, -1, &mut gs.ecs);
-  }
-
-  if keyboard::is_key_pressed(ctx, KeyCode::Down) ||
-     keyboard::is_key_pressed(ctx, KeyCode::Numpad2) ||
-     keyboard::is_key_pressed(ctx, KeyCode::J) {
-      try_move_player(0, 1 , &mut gs.ecs);
-  }
+  RunState::Waiting
 }
