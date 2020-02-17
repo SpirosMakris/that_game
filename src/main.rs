@@ -27,25 +27,6 @@ pub use map::*;
 mod visibility_system;
 use visibility_system::VisibilitySystem;
 
-#[derive(Component)]
-struct LeftMover {}
-
-// struct LeftWalkerSys {}
-
-// impl<'a> System<'a> for LeftWalkerSys {
-//     type SystemData = (ReadStorage<'a, LeftMover>,
-//                         WriteStorage<'a, GridPosition>);
-    
-//     fn run(&mut self, (lefty, mut pos) : Self::SystemData) {
-//         for (_lefty, pos) in (&lefty, &mut pos).join() {
-//             pos.x -= 1;
-//             if pos.x < 0 { pos.x = 79; }
-//         }
-//     }
-// }
-
-
-
 
 // GAME STATE
 
@@ -83,28 +64,31 @@ impl event::EventHandler for State {
         gfx::clear(ctx, [0.1, 0.2, 0.3, 1.0].into());
 
         // Render our map
-        // let map = self.ecs.fetch::<Vec<TileType>>();
         draw_map(&self.ecs, ctx)?;
 
+        // RENDER MONSTERS
         let positions = self.ecs.read_storage::<GridPosition>();
         let renderables = self.ecs.read_storage::<Renderable>();
+        let map = self.ecs.fetch::<Map>();
 
-        for (pos, rnd) in (&positions, &renderables).join() {
+        for (pos, render) in (&positions, &renderables).join() {
 
-            let circle = gfx::Mesh::new_circle(
-                ctx, 
-                gfx::DrawMode::fill(),
-                na::Point2::new(0.0, 0.0), 
-                10.0, 
-                2.0,
-                // graphics::WHITE,
-                rnd.color
-            )?;
-
-            gfx::draw(ctx, &circle, (na::Point2::new( (pos.x * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32, (pos.y * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32), ))?;
+            let idx = map.xy_idx(pos.x, pos.y);
+            if map.visible_tiles[idx] {
+                
+                let circle = gfx::Mesh::new_circle(
+                    ctx, 
+                    gfx::DrawMode::fill(),
+                    na::Point2::new(0.0, 0.0), 
+                    10.0, 
+                    2.0,
+                    render.color
+                )?;
+    
+                gfx::draw(ctx, &circle, (na::Point2::new( (pos.x * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32, (pos.y * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32), ))?;
+            }
         }
 
-        
         gfx::present(ctx)?;
         Ok(())
     }
@@ -142,7 +126,6 @@ fn main() -> GameResult {
     // Register components
     gs.ecs.register::<GridPosition>();
     gs.ecs.register::<Renderable>();
-    gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
     gs.ecs.register::<Viewshed>();
 
@@ -150,7 +133,6 @@ fn main() -> GameResult {
     // and placelace player in the center of 1st room
     let map: Map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
-    gs.ecs.insert(map);
 
     // Create player
     gs.ecs
@@ -163,29 +145,28 @@ fn main() -> GameResult {
         .with(Viewshed {visible_tiles: Vec::new(), range: 8, dirty: true })
         .build();
     
-    // Add a bunch more entities
-    for i in 0..10 {
+    // Add some monsters
+    for room in map.rooms.iter().skip(1) {
+
+        let (x, y) = room.center();
+
         gs.ecs
-            .create_entity()
-            .with(GridPosition { x: i * 7, y: 20 })
+        .create_entity()
+            .with(GridPosition { x, y })
             .with(Renderable {
                 color: gfx::Color::new(1., 0., 0., 1.),
             })
-            .with(LeftMover {})
-            .build();
+            .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true})
+
+        .build();
     }
-    
-    // rltk::main_loop(context, gs);
+
+    gs.ecs.insert(map);
 
     // @TODO: Screen dims to use for (80 x 50 , tile size 16) = 1280 x 800
 
     let cb = ggez::ContextBuilder::new("THAT GAME - super simple", "Spiros Makris");
     let (ctx, event_loop) = &mut cb.build()?;
-
-    // @TODO: Push this to ContextBuilder creation
-    // let w_mode = ggez::conf::WindowMode::default()
-    //     .min_dimensions(1280., 720.);
-    // gfx::set_mode(ctx, w_mode)?;
     
     event::run(ctx, event_loop, &mut gs)
 }
