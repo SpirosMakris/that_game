@@ -1,6 +1,6 @@
 extern crate specs;
 use specs::prelude::*;
-use super::{Viewshed, GridPosition, Map, Monster};
+use super::{Viewshed, Map, Monster};
 
 extern crate rltk;
 use rltk::{field_of_view, Point};
@@ -8,15 +8,17 @@ use rltk::{field_of_view, Point};
 pub struct MonsterAISystem {}
 
 impl<'a> System<'a> for MonsterAISystem {
-  type SystemData = ( ReadStorage<'a, Viewshed>,
-                      ReadStorage<'a, GridPosition>,
+  type SystemData = ( ReadExpect<'a, rltk::Point>,
+                      ReadStorage<'a, Viewshed>,
                       ReadStorage<'a, Monster>);
 
   fn run(&mut self, data: Self::SystemData) {
-    let (viewshed, pos, monster) = data;
+    let (player_pos, viewshed, monster) = data;
 
-    for (viewshed, pos, _monster) in (&viewshed, &pos, &monster).join() {
-      println!("Monster considers their own existence");
+    for (viewshed, _monster) in (&viewshed, &monster).join() {
+      if viewshed.visible_tiles.contains(&*player_pos) {
+        println!("Monster shouts insults");
+      }
     }
   }
 }

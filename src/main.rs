@@ -175,6 +175,9 @@ fn main() -> GameResult {
 
     gs.ecs.insert(map);
 
+    // @TODO: Should this be an rltk::Point or something else?
+    gs.ecs.insert(rltk::Point::new(player_x, player_y));
+
     // @TODO: Screen dims to use for (80 x 50 , tile size 16) = 1280 x 800
 
     let cb = ggez::ContextBuilder::new("THAT GAME - super simple", "Spiros Makris");

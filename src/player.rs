@@ -24,6 +24,11 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
 
           // We've moved so mark our viewshed as dirty to recalculate
           viewshed.dirty = true;
+
+          // Update Player Position resource
+          let mut ppos = ecs.write_resource::<rltk::Point>();
+          ppos.x = pos.x;
+          ppos.y = pos.y;
       }
   }
 }
