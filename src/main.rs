@@ -130,6 +130,7 @@ fn main() -> GameResult {
     gs.ecs.register::<Player>();
     gs.ecs.register::<Viewshed>();
     gs.ecs.register::<Monster>();
+    gs.ecs.register::<Name>();
 
     // Add a map to ECS resources
     // and placelace player in the center of 1st room
@@ -145,31 +146,43 @@ fn main() -> GameResult {
             })
             .with(Player {})
             .with(Viewshed {visible_tiles: Vec::new(), range: 8, dirty: true })
+            .with(Name { name: "Player".to_string() })
         .build();
     
     // Add some monsters  
     let mut rng = rltk::RandomNumberGenerator::new();
 
-    for room in map.rooms.iter().skip(1) {
+    for (i, room) in map.rooms.iter().skip(1).enumerate() {
 
         let (x, y) = room.center();
+
         let color: gfx::Color;
+        let name: String;
+
         let roll = rng.roll_dice(1, 2);
 
         match roll {
-            1 => color = gfx::Color::new(1.0, 0.0, 0.75, 1.0),
-            _ => color = gfx::Color::new(1.0, 0.0, 0.1, 1.0),
+            1 => {
+                color = gfx::Color::new(1.0, 0.0, 0.75, 1.0);
+                name = "Goblin".to_string();
+            },
+
+            _ => {
+                color = gfx::Color::new(1.0, 0.0, 0.1, 1.0);
+                name = "Orc".to_string();
+            }   
+            
         }
 
         gs.ecs
         .create_entity()
             .with(GridPosition { x, y })
             .with(Renderable {
-                // color: gfx::Color::new(1., 0., 0., 1.),
                 color
             })
             .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true})
             .with(Monster {})
+            .with(Name { name: format!("{} #{}", &name, i) })
         .build();
     }
 
