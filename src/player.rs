@@ -74,6 +74,34 @@ pub fn player_input(gs: &mut State, ctx: &Context) -> RunState {
         return RunState::Running;
     }
 
+    // DIAGONALS
+    if keyboard::is_key_pressed(ctx, KeyCode::Numpad9) ||
+       keyboard::is_key_pressed(ctx, KeyCode::Y) {
+        try_move_player(1, -1 , &mut gs.ecs);
+        // @TODO: Fix!!!!
+        return RunState::Running;
+    }
+
+    if keyboard::is_key_pressed(ctx, KeyCode::Numpad7) ||
+       keyboard::is_key_pressed(ctx, KeyCode::U) {
+        try_move_player(-1, -1 , &mut gs.ecs);
+        // @TODO: Fix!!!!
+        return RunState::Running;
+    }
+
+    if keyboard::is_key_pressed(ctx, KeyCode::Numpad3) ||
+       keyboard::is_key_pressed(ctx, KeyCode::N) {
+        try_move_player(1, 1 , &mut gs.ecs);
+        // @TODO: Fix!!!!
+        return RunState::Running;
+    }
+
+    if keyboard::is_key_pressed(ctx, KeyCode::Numpad1) ||
+       keyboard::is_key_pressed(ctx, KeyCode::B) {
+        try_move_player(-1, 1 , &mut gs.ecs);
+        // @TODO: Fix!!!!
+        return RunState::Running;
+    }
   }
 
   RunState::Waiting
