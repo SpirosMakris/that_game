@@ -140,6 +140,8 @@ fn main() -> GameResult {
     gs.ecs.register::<Name>();
     gs.ecs.register::<BlocksTile>();
     gs.ecs.register::<CombatStats>();
+    gs.ecs.register::<WantsToMelee>();
+    gs.ecs.register::<SufferDamage>();
 
     // Add a map to ECS resources
     // and placelace player in the center of 1st room

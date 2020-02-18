@@ -4,7 +4,7 @@ use ggez::Context;
 
 use specs::prelude::*;
 
-use super::{GridPosition, Player, CombatStats, Map, State, Viewshed, RunState};
+use super::{GridPosition, Player, CombatStats, Map, State, Viewshed, RunState, WantsToMelee};
 
 use std::cmp::{min, max};
 
@@ -14,10 +14,12 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
   let mut positions = ecs.write_storage::<GridPosition>();
   let mut players = ecs.write_storage::<Player>();
   let mut viewsheds = ecs.write_storage::<Viewshed>();
+  let entities = ecs.entities();
   let combat_stats = ecs.read_storage::<CombatStats>();
   let map = ecs.fetch::<Map>();
+  let mut wants_to_melee = ecs.write_storage::<WantsToMelee>();
 
-  for (_player, pos, viewshed) in (&mut players, &mut positions, &mut viewsheds).join() {
+  for (entity, _player, pos, viewshed) in (&entities, &mut players, &mut positions, &mut viewsheds).join() {
       let destination_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
 
       // Let's see if we are moving onto an enemy. If so attack and return without moving
@@ -26,6 +28,10 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
         if let Some(_target) = target {
           // Attack it
           println!("From Hell's Heart, I stab thee!");
+
+          wants_to_melee.insert(entity, WantsToMelee{target: *potential_target})
+            .expect("Add target failed");
+
           return; // So we don't move after attacking
         }
       }
