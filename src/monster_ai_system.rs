@@ -19,11 +19,16 @@ impl<'a> System<'a> for MonsterAISystem {
     let (mut map, player_pos, mut viewshed, monster, name, mut position) = data;
 
     for (mut viewshed, _monster, name, mut pos) in (&mut viewshed, &monster, &name, &mut position).join() {
+      let distance = rltk::DistanceAlg::Pythagoras.distance2d(rltk::Point::new(pos.x, pos.y), *player_pos);
+      if distance < 1.5 {
+        // Attack goes here
+        println!("{} shouts insults", name.name);
+        return;
+      }
 
       if viewshed.visible_tiles.contains(&*player_pos) {
-        println!("{} shouts insults", name.name);
+        // Get a path to player so we can follow him
 
-        // Get a path to player
         let path = rltk::a_star_search(
           map.xy_idx(pos.x, pos.y) as i32, 
           map.xy_idx(player_pos.x, player_pos.y) as i32, 

@@ -24,10 +24,13 @@ mod player;
 use player::*;
 mod map;
 pub use map::*;
+
 mod visibility_system;
 use visibility_system::VisibilitySystem;
 mod monster_ai_system;
 use monster_ai_system::MonsterAISystem;
+mod map_indexing_system;
+use map_indexing_system::MapIndexingSystem;
 
 
 // GAME STATE
@@ -51,6 +54,10 @@ impl State {
         // Run monster AI system
         let mut mob = MonsterAISystem{};
         mob.run_now(&self.ecs);
+
+        // Run the map indexing system
+        let mut mapindex = MapIndexingSystem{};
+        mapindex.run_now(&self.ecs);
 
         // Update world after running systems
         self.ecs.maintain();
@@ -131,6 +138,7 @@ fn main() -> GameResult {
     gs.ecs.register::<Viewshed>();
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
+    gs.ecs.register::<BlocksTile>();
 
     // Add a map to ECS resources
     // and placelace player in the center of 1st room
@@ -183,6 +191,7 @@ fn main() -> GameResult {
             .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true})
             .with(Monster {})
             .with(Name { name: format!("{} #{}", &name, i) })
+            .with(BlocksTile{})
         .build();
     }
 
