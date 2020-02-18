@@ -29,6 +29,13 @@ impl Map {
       (y as usize * self.width as usize) + x as usize
     }
 
+    fn is_exit_valid(&self, x: i32, y: i32) -> bool {
+        if x < 1 || x > self.width - 1 || y < 1 || y > self.height -1 { return false; }
+
+        let idx = self.xy_idx(x, y);
+        self.tiles[idx] != TileType::Wall
+    }
+
     fn apply_room_to_map(&mut self, room: &Rect32) {
         for y in room.y1 + 1 ..= room.y2 {
             for x in room.x1 + 1 ..= room.x2 {
@@ -134,6 +141,27 @@ impl rltk::Algorithm2D for Map {
 impl rltk::BaseMap for Map {
     fn is_opaque(&self, idx: usize) -> bool {
         self.tiles[idx] == TileType::Wall
+    }
+
+    fn get_available_exits(&self, idx: usize) -> Vec<(usize, f32)> {
+        let mut exits: Vec<(usize, f32)> = Vec::new();
+        let x = idx as i32 % self.width;
+        let y = idx as i32 / self.width;
+        let w = self.width as usize;
+
+        // Cardinal directions
+        if self.is_exit_valid(x-1, y) { exits.push((idx-1, 1.0)) };
+        if self.is_exit_valid(x+1, y) { exits.push((idx+1, 1.0)) };
+        if self.is_exit_valid(x, y-1) { exits.push((idx-w, 1.0)) };
+        if self.is_exit_valid(x, y+1) { exits.push((idx+w, 1.0)) };
+
+        // Diagonals
+        if self.is_exit_valid(x-1, y-1) { exits.push( ((idx-w) - 1, 1.45)); }
+        if self.is_exit_valid(x+1, y-1) { exits.push( ((idx-w) + 1, 1.45)); }
+        if self.is_exit_valid(x-1, y+1) { exits.push( ((idx+w) - 1, 1.45)); }
+        if self.is_exit_valid(x+1, y+1) { exits.push( ((idx+w) + 1, 1.45)); }
+
+        exits
     }
 }
 
