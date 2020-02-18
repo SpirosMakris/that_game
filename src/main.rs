@@ -139,6 +139,7 @@ fn main() -> GameResult {
     gs.ecs.register::<Monster>();
     gs.ecs.register::<Name>();
     gs.ecs.register::<BlocksTile>();
+    gs.ecs.register::<CombatStats>();
 
     // Add a map to ECS resources
     // and placelace player in the center of 1st room
@@ -155,6 +156,7 @@ fn main() -> GameResult {
             .with(Player {})
             .with(Viewshed {visible_tiles: Vec::new(), range: 8, dirty: true })
             .with(Name { name: "Player".to_string() })
+            .with(CombatStats { max_hp: 30, hp: 30, defense: 2, power: 5})
         .build();
     
     // Add some monsters  
@@ -192,6 +194,7 @@ fn main() -> GameResult {
             .with(Monster {})
             .with(Name { name: format!("{} #{}", &name, i) })
             .with(BlocksTile{})
+            .with(CombatStats{max_hp: 16, hp: 16, defense: 1, power: 4})
         .build();
     }
 
