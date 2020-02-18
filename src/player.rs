@@ -4,7 +4,7 @@ use ggez::Context;
 
 use specs::prelude::*;
 
-use super::{GridPosition, Player, TileType, Map, State, Viewshed, RunState};
+use super::{GridPosition, Player, CombatStats, Map, State, Viewshed, RunState};
 
 use std::cmp::{min, max};
 
@@ -14,11 +14,22 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
   let mut positions = ecs.write_storage::<GridPosition>();
   let mut players = ecs.write_storage::<Player>();
   let mut viewsheds = ecs.write_storage::<Viewshed>();
+  let combat_stats = ecs.read_storage::<CombatStats>();
   let map = ecs.fetch::<Map>();
 
   for (_player, pos, viewshed) in (&mut players, &mut positions, &mut viewsheds).join() {
       let destination_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
-      // if map.tiles[destination_idx] != TileType::Wall {
+
+      // Let's see if we are moving onto an enemy. If so attack and return without moving
+      for potential_target in map.tile_content[destination_idx].iter() {
+        let target = combat_stats.get(*potential_target);
+        if let Some(_target) = target {
+          // Attack it
+          println!("From Hell's Heart, I stab thee!");
+          return; // So we don't move after attacking
+        }
+      }
+
       if !map.blocked[destination_idx] {
           pos.x = min(79, max(0, pos.x + delta_x));
           pos.y = min(49, max(0, pos.y + delta_y));
