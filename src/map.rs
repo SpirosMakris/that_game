@@ -4,7 +4,7 @@ use std::cmp::{max, min};
 extern crate specs;
 use specs::prelude::*;
 
-use super::{Rect32};
+use super::Rect32;
 
 pub const GRID_TILE_SIZE: i32 = 8;
 
@@ -22,17 +22,18 @@ pub struct Map {
     pub revealed_tiles: Vec<bool>,
     pub visible_tiles: Vec<bool>,
     pub blocked: Vec<bool>,
-    pub tile_content: Vec<Vec<Entity>>
+    pub tile_content: Vec<Vec<Entity>>,
 }
 
 impl Map {
-    
     pub fn xy_idx(&self, x: i32, y: i32) -> usize {
-      (y as usize * self.width as usize) + x as usize
+        (y as usize * self.width as usize) + x as usize
     }
 
     fn is_exit_valid(&self, x: i32, y: i32) -> bool {
-        if x < 1 || x > self.width - 1 || y < 1 || y > self.height -1 { return false; }
+        if x < 1 || x > self.width - 1 || y < 1 || y > self.height - 1 {
+            return false;
+        }
 
         let idx = self.xy_idx(x, y);
         // self.tiles[idx] != TileType::Wall
@@ -52,17 +53,16 @@ impl Map {
     }
 
     fn apply_room_to_map(&mut self, room: &Rect32) {
-        for y in room.y1 + 1 ..= room.y2 {
-            for x in room.x1 + 1 ..= room.x2 {
+        for y in room.y1 + 1..=room.y2 {
+            for x in room.x1 + 1..=room.x2 {
                 let idx = self.xy_idx(x, y);
                 self.tiles[idx] = TileType::Floor;
             }
         }
     }
 
-
-    fn apply_horizontal_tunnel(&mut self, x1:i32, x2:i32, y:i32) {
-        for x in min(x1,x2) ..= max(x1,x2) {
+    fn apply_horizontal_tunnel(&mut self, x1: i32, x2: i32, y: i32) {
+        for x in min(x1, x2)..=max(x1, x2) {
             let idx = self.xy_idx(x, y);
             if idx > 0 && idx < self.width as usize * self.height as usize {
                 self.tiles[idx] = TileType::Floor;
@@ -70,21 +70,18 @@ impl Map {
         }
     }
 
-
-    fn apply_vertical_tunnel(&mut self, y1:i32, y2:i32, x:i32) {
-        for y in min(y1,y2) ..= max(y1,y2) {
+    fn apply_vertical_tunnel(&mut self, y1: i32, y2: i32, x: i32) {
+        for y in min(y1, y2)..=max(y1, y2) {
             let idx = self.xy_idx(x, y);
             if idx > 0 && idx < self.width as usize * self.height as usize {
                 self.tiles[idx] = TileType::Floor;
             }
         }
     }
-
 
     /// Makes a new map using the algorithm from http://rogueliketutorials.com/tutorials/tcod/part-3/
     /// This gives a handful of random rooms and corridors joining them together.
     pub fn new_map_rooms_and_corridors() -> Map {
-
         let mut map = Map {
             tiles: vec![TileType::Wall; 80 * 50],
             rooms: Vec::new(),
@@ -93,15 +90,15 @@ impl Map {
             revealed_tiles: vec![false; 80 * 50],
             visible_tiles: vec![false; 80 * 50],
             blocked: vec![false; 80 * 50],
-            tile_content: vec![Vec::new(); 80 * 50]
+            tile_content: vec![Vec::new(); 80 * 50],
         };
 
         // @TODO: Remove. Just a test to see if we can actually render an empty map
         map.revealed_tiles[0] = true;
 
-        const MAX_ROOMS : i32 = 30;
-        const MIN_SIZE : i32 = 6;
-        const MAX_SIZE : i32 = 10;
+        const MAX_ROOMS: i32 = 30;
+        const MIN_SIZE: i32 = 6;
+        const MAX_SIZE: i32 = 10;
 
         let mut rng = rltk::RandomNumberGenerator::new();
 
@@ -118,7 +115,9 @@ impl Map {
             let mut ok = true;
 
             for other_room in map.rooms.iter() {
-                if new_room.intersect(other_room) { ok = false};
+                if new_room.intersect(other_room) {
+                    ok = false
+                };
             }
 
             // If valid apply room
@@ -140,14 +139,12 @@ impl Map {
                 }
 
                 map.rooms.push(new_room);
-            
             }
         }
 
         map
     }
 }
-
 
 impl rltk::Algorithm2D for Map {
     fn dimensions(&self) -> rltk::Point {
@@ -167,16 +164,32 @@ impl rltk::BaseMap for Map {
         let w = self.width as usize;
 
         // Cardinal directions
-        if self.is_exit_valid(x-1, y) { exits.push((idx-1, 1.0)) };
-        if self.is_exit_valid(x+1, y) { exits.push((idx+1, 1.0)) };
-        if self.is_exit_valid(x, y-1) { exits.push((idx-w, 1.0)) };
-        if self.is_exit_valid(x, y+1) { exits.push((idx+w, 1.0)) };
+        if self.is_exit_valid(x - 1, y) {
+            exits.push((idx - 1, 1.0))
+        };
+        if self.is_exit_valid(x + 1, y) {
+            exits.push((idx + 1, 1.0))
+        };
+        if self.is_exit_valid(x, y - 1) {
+            exits.push((idx - w, 1.0))
+        };
+        if self.is_exit_valid(x, y + 1) {
+            exits.push((idx + w, 1.0))
+        };
 
         // Diagonals
-        if self.is_exit_valid(x-1, y-1) { exits.push( ((idx-w) - 1, 1.45)); }
-        if self.is_exit_valid(x+1, y-1) { exits.push( ((idx-w) + 1, 1.45)); }
-        if self.is_exit_valid(x-1, y+1) { exits.push( ((idx+w) - 1, 1.45)); }
-        if self.is_exit_valid(x+1, y+1) { exits.push( ((idx+w) + 1, 1.45)); }
+        if self.is_exit_valid(x - 1, y - 1) {
+            exits.push(((idx - w) - 1, 1.45));
+        }
+        if self.is_exit_valid(x + 1, y - 1) {
+            exits.push(((idx - w) + 1, 1.45));
+        }
+        if self.is_exit_valid(x - 1, y + 1) {
+            exits.push(((idx + w) - 1, 1.45));
+        }
+        if self.is_exit_valid(x + 1, y + 1) {
+            exits.push(((idx + w) + 1, 1.45));
+        }
 
         exits
     }
@@ -195,20 +208,22 @@ pub fn draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
         // Render a tile depending upon the tile type
         if map.revealed_tiles[idx] {
             let mut color = match tile {
-                TileType::Floor => {
-                    gfx::Color::new(0.0, 1.0, 0.0, 0.5)
-                },
-                TileType::Wall => {
-                    gfx::Color::new(1.0, 0.0, 0.0, 1.0)
-                }
+                TileType::Floor => gfx::Color::new(0.0, 1.0, 0.0, 0.5),
+                TileType::Wall => gfx::Color::new(1.0, 0.0, 0.0, 1.0),
             };
 
             // Grayscale the color if it's not currently visible
-            if !map.visible_tiles[idx] { color = gfx::Color::new(0.5, 0.5, 0.5, 1.0)}
+            if !map.visible_tiles[idx] {
+                color = gfx::Color::new(0.5, 0.5, 0.5, 1.0)
+            }
 
-            let rect = gfx::Rect::new_i32(x * GRID_TILE_SIZE, y * GRID_TILE_SIZE, GRID_TILE_SIZE, GRID_TILE_SIZE);
+            let rect = gfx::Rect::new_i32(
+                x * GRID_TILE_SIZE,
+                y * GRID_TILE_SIZE,
+                GRID_TILE_SIZE,
+                GRID_TILE_SIZE,
+            );
             map_mesh = map_mesh.rectangle(gfx::DrawMode::fill(), rect, color);
-
         }
 
         // Move the coordinates
@@ -225,10 +240,9 @@ pub fn draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
     Ok(())
 }
 
-
 /// Only draws tiles in the player's viewshed
 pub fn __draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
-    use super::components::{Viewshed, Player};
+    use super::components::{Player, Viewshed};
 
     let mut viewsheds = ecs.write_storage::<Viewshed>();
     let mut players = ecs.write_storage::<Player>();
@@ -242,18 +256,19 @@ pub fn __draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
 
         for tile in map.tiles.iter() {
             // Render a tile depending on the tile type
-            let pt = rltk::Point::new(x,y);
+            let pt = rltk::Point::new(x, y);
             if viewshed.visible_tiles.contains(&pt) {
                 let color = match tile {
-                    TileType::Floor => {
-                        gfx::Color::new(0.0, 1.0, 0.0, 0.5)
-                    },
-                    TileType::Wall => {
-                        gfx::Color::new(1.0, 0.0, 0.0, 1.0)
-                    }
+                    TileType::Floor => gfx::Color::new(0.0, 1.0, 0.0, 0.5),
+                    TileType::Wall => gfx::Color::new(1.0, 0.0, 0.0, 1.0),
                 };
 
-                let rect = gfx::Rect::new_i32(x * GRID_TILE_SIZE, y * GRID_TILE_SIZE, GRID_TILE_SIZE, GRID_TILE_SIZE);
+                let rect = gfx::Rect::new_i32(
+                    x * GRID_TILE_SIZE,
+                    y * GRID_TILE_SIZE,
+                    GRID_TILE_SIZE,
+                    GRID_TILE_SIZE,
+                );
                 map_mesh = map_mesh.rectangle(gfx::DrawMode::fill(), rect, color);
             }
 
@@ -263,8 +278,6 @@ pub fn __draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
                 x = 0;
                 y += 1;
             }
-
-
         }
 
         let map_mesh = map_mesh.build(ctx)?;
@@ -275,37 +288,37 @@ pub fn __draw_map(ecs: &World, ctx: &mut Context) -> GameResult {
 }
 
 pub fn ___draw_map(map: &[TileType], ctx: &mut Context) -> GameResult {
+    let mut x = 0;
+    let mut y = 0;
 
-  let mut x = 0;
-  let mut y = 0;
+    let mut mesh = &mut gfx::MeshBuilder::new();
 
-  let mut mesh = &mut gfx::MeshBuilder::new();
+    for tile in map.iter() {
+        // Render a tile depending upon it's tiletype
+        let color = match tile {
+            TileType::Floor => gfx::Color::new(0.0, 1.0, 0.0, 0.5),
+            TileType::Wall => gfx::Color::new(1.0, 0.0, 0.0, 1.0),
+        };
+        let rect = gfx::Rect::new_i32(
+            x * GRID_TILE_SIZE,
+            y * GRID_TILE_SIZE,
+            GRID_TILE_SIZE,
+            GRID_TILE_SIZE,
+        );
+        mesh = mesh.rectangle(gfx::DrawMode::fill(), rect, color);
+        // let r1_mesh = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, color)?;
+        // graphics::draw(ctx, &r1_mesh, graphics::DrawParam::default())?;
 
-  for tile in map.iter() {
-      // Render a tile depending upon it's tiletype
-      let color = match tile {
-          TileType::Floor => {
-              gfx::Color::new(0.0, 1.0, 0.0, 0.5)
-          },
-          TileType::Wall => {
-              gfx::Color::new(1.0, 0.0, 0.0, 1.0)
-          }
-      };
-      let rect = gfx::Rect::new_i32(x * GRID_TILE_SIZE, y * GRID_TILE_SIZE, GRID_TILE_SIZE, GRID_TILE_SIZE);
-      mesh = mesh.rectangle(gfx::DrawMode::fill(), rect, color);
-      // let r1_mesh = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, color)?;
-      // graphics::draw(ctx, &r1_mesh, graphics::DrawParam::default())?;
+        // Move the coordinates
+        x += 1;
+        if x > 79 {
+            x = 0;
+            y += 1;
+        }
+    }
 
-      // Move the coordinates
-      x += 1;
-      if x > 79 {
-          x = 0;
-          y += 1;
-      }
-  }
-  
-  let mesh = mesh.build(ctx)?;
+    let mesh = mesh.build(ctx)?;
 
-  gfx::draw(ctx, &mesh, gfx::DrawParam::default())?;
-  Ok(())
+    gfx::draw(ctx, &mesh, gfx::DrawParam::default())?;
+    Ok(())
 }

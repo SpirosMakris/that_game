@@ -5,16 +5,12 @@ extern crate specs_derive;
 
 // use rltk::{Console, GameState, Rltk, RGB, VirtualKeyCode};
 
-
-
 use ggez;
 use ggez::event;
 use ggez::graphics as gfx;
 use ggez::nalgebra as na;
-use ggez::{Context, GameResult};
 use ggez::timer;
-
-
+use ggez::{Context, GameResult};
 
 mod components;
 pub use components::*;
@@ -31,13 +27,18 @@ mod monster_ai_system;
 use monster_ai_system::MonsterAISystem;
 mod map_indexing_system;
 use map_indexing_system::MapIndexingSystem;
-
+mod melee_combat_system;
+use melee_combat_system::MeleeCombatSystem;
+mod damage_system;
+use damage_system::DamageSystem;
 
 // GAME STATE
 
 #[derive(PartialEq, Copy, Clone)]
-pub enum RunState { Waiting, Running }
-
+pub enum RunState {
+    Waiting,
+    Running,
+}
 
 pub struct State {
     pub ecs: World,
@@ -46,18 +47,25 @@ pub struct State {
 
 impl State {
     fn run_systems(&mut self) {
-
         // Run visibility system
-        let mut vis = VisibilitySystem{};
+        let mut vis = VisibilitySystem {};
         vis.run_now(&self.ecs);
 
         // Run monster AI system
-        let mut mob = MonsterAISystem{};
+        let mut mob = MonsterAISystem {};
         mob.run_now(&self.ecs);
 
         // Run the map indexing system
-        let mut mapindex = MapIndexingSystem{};
+        let mut mapindex = MapIndexingSystem {};
         mapindex.run_now(&self.ecs);
+
+        // Run the melee combat system
+        let mut melee = MeleeCombatSystem {};
+        melee.run_now(&self.ecs);
+
+        // Run damage system
+        let mut damage = DamageSystem {};
+        damage.run_now(&self.ecs);
 
         // Update world after running systems
         self.ecs.maintain();
@@ -75,14 +83,15 @@ impl event::EventHandler for State {
             RunState::Running => {
                 self.run_systems();
                 self.runstate = RunState::Waiting;
-            },
+            }
             RunState::Waiting => {
                 self.runstate = player_input(self, ctx);
             }
         }
 
-        // player_input(self, ctx);
-        // self.run_systems();
+        // Delete dead entities
+        damage_system::delete_the_dead(&mut self.ecs);
+
         Ok(())
     }
 
@@ -97,23 +106,26 @@ impl event::EventHandler for State {
         let renderables = self.ecs.read_storage::<Renderable>();
         let map = self.ecs.fetch::<Map>();
 
-
-
         for (pos, render) in (&positions, &renderables).join() {
-
             let idx = map.xy_idx(pos.x, pos.y);
             if map.visible_tiles[idx] {
-                
                 let circle = gfx::Mesh::new_circle(
-                    ctx, 
+                    ctx,
                     gfx::DrawMode::fill(),
-                    na::Point2::new(0.0, 0.0), 
-                    10.0, 
+                    na::Point2::new(0.0, 0.0),
+                    10.0,
                     2.0,
-                    render.color
+                    render.color,
                 )?;
-    
-                gfx::draw(ctx, &circle, (na::Point2::new( (pos.x * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32, (pos.y * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32), ))?;
+
+                gfx::draw(
+                    ctx,
+                    &circle,
+                    (na::Point2::new(
+                        (pos.x * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32,
+                        (pos.y * GRID_TILE_SIZE) as f32 + (GRID_TILE_SIZE / 2) as f32,
+                    ),),
+                )?;
             }
         }
 
@@ -122,9 +134,7 @@ impl event::EventHandler for State {
     }
 }
 
-
 fn main() -> GameResult {
-    
     // Create State with ECS world in it.
     let mut gs = State {
         ecs: World::new(),
@@ -149,23 +159,36 @@ fn main() -> GameResult {
     let (player_x, player_y) = map.rooms[0].center();
 
     // Create player
-    gs.ecs
+    let player_entity = gs.ecs
         .create_entity()
-            .with(GridPosition {x: player_x, y: player_y})
-            .with(Renderable {
-                color: gfx::Color::new(0., 1., 0., 1.),
-            })
-            .with(Player {})
-            .with(Viewshed {visible_tiles: Vec::new(), range: 8, dirty: true })
-            .with(Name { name: "Player".to_string() })
-            .with(CombatStats { max_hp: 30, hp: 30, defense: 2, power: 5})
+        .with(GridPosition {
+            x: player_x,
+            y: player_y,
+        })
+        .with(Renderable {
+            color: gfx::Color::new(0., 1., 0., 1.),
+        })
+        .with(Player {})
+        .with(Viewshed {
+            visible_tiles: Vec::new(),
+            range: 8,
+            dirty: true,
+        })
+        .with(Name {
+            name: "Player".to_string(),
+        })
+        .with(CombatStats {
+            max_hp: 30,
+            hp: 30,
+            defense: 2,
+            power: 5,
+        })
         .build();
-    
-    // Add some monsters  
+
+    // Add some monsters
     let mut rng = rltk::RandomNumberGenerator::new();
 
     for (i, room) in map.rooms.iter().skip(1).enumerate() {
-
         let (x, y) = room.center();
 
         let color: gfx::Color;
@@ -177,38 +200,48 @@ fn main() -> GameResult {
             1 => {
                 color = gfx::Color::new(1.0, 0.0, 0.75, 1.0);
                 name = "Goblin".to_string();
-            },
+            }
 
             _ => {
                 color = gfx::Color::new(1.0, 0.0, 0.1, 1.0);
                 name = "Orc".to_string();
-            }   
-            
+            }
         }
 
         gs.ecs
-        .create_entity()
+            .create_entity()
             .with(GridPosition { x, y })
-            .with(Renderable {
-                color
+            .with(Renderable { color })
+            .with(Viewshed {
+                visible_tiles: Vec::new(),
+                range: 8,
+                dirty: true,
             })
-            .with(Viewshed{ visible_tiles : Vec::new(), range: 8, dirty: true})
             .with(Monster {})
-            .with(Name { name: format!("{} #{}", &name, i) })
-            .with(BlocksTile{})
-            .with(CombatStats{max_hp: 16, hp: 16, defense: 1, power: 4})
-        .build();
+            .with(Name {
+                name: format!("{} #{}", &name, i),
+            })
+            .with(BlocksTile {})
+            .with(CombatStats {
+                max_hp: 16,
+                hp: 16,
+                defense: 1,
+                power: 4,
+            })
+            .build();
     }
 
+    // INSERT RESOURCES
     gs.ecs.insert(map);
 
     // @TODO: Should this be an rltk::Point or something else?
     gs.ecs.insert(rltk::Point::new(player_x, player_y));
+    gs.ecs.insert(player_entity);
+
 
     // @TODO: Screen dims to use for (80 x 50 , tile size 16) = 1280 x 800
-
     let cb = ggez::ContextBuilder::new("THAT GAME - super simple", "Spiros Makris");
     let (ctx, event_loop) = &mut cb.build()?;
-    
+
     event::run(ctx, event_loop, &mut gs)
 }
