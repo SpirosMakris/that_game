@@ -13,3 +13,9 @@ specs-derive = "0.4"
 rltk = { version = "0.6.2" }
 
 ggez = "0.5"
+
+gfx_core = "0.9"
+gfx_device_gl = "0.16"
+
+imgui = "0.3"
+imgui-gfx-renderer = "0.3"
