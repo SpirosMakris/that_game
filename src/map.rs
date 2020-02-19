@@ -36,7 +36,6 @@ impl Map {
         }
 
         let idx = self.xy_idx(x, y);
-        // self.tiles[idx] != TileType::Wall
         !self.blocked[idx]
     }
 

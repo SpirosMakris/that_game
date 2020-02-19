@@ -22,15 +22,23 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     for (entity, _player, pos, viewshed) in
         (&entities, &mut players, &mut positions, &mut viewsheds).join()
     {
+        // Bounds checks for desired position
+        if pos.x + delta_x < 1
+            || pos.x + delta_x > map.width - 1
+            || pos.y + delta_y < 1
+            || pos.y + delta_y > map.height - 1
+        {
+            return;
+        }
+
         let destination_idx = map.xy_idx(pos.x + delta_x, pos.y + delta_y);
 
         // Let's see if we are moving onto an enemy. If so attack and return without moving
+        // We check the dest tiles contained entities for that.
         for potential_target in map.tile_content[destination_idx].iter() {
             let target = combat_stats.get(*potential_target);
             if let Some(_target) = target {
                 // Attack it
-                println!("From Hell's Heart, I stab thee!");
-
                 wants_to_melee
                     .insert(
                         entity,
@@ -64,7 +72,7 @@ pub fn player_input(gs: &mut State, ctx: &Context) -> RunState {
     // @TODO: Return RunState::Waiting when none active key is pressed!!!!!!
     let pressed_keys = keyboard::pressed_keys(ctx);
     if pressed_keys.is_empty() {
-        return RunState::Waiting;
+        return RunState::AwaitingInput;
     } else {
         if keyboard::is_key_pressed(ctx, KeyCode::Left)
             || keyboard::is_key_pressed(ctx, KeyCode::Numpad4)
@@ -72,7 +80,7 @@ pub fn player_input(gs: &mut State, ctx: &Context) -> RunState {
         {
             try_move_player(-1, 0, &mut gs.ecs);
             // @TODO: Fix!!!!
-            return RunState::Running;
+            return RunState::PlayerTurn;
         }
 
         if keyboard::is_key_pressed(ctx, KeyCode::Right)
@@ -81,7 +89,7 @@ pub fn player_input(gs: &mut State, ctx: &Context) -> RunState {
         {
             try_move_player(1, 0, &mut gs.ecs);
             // @TODO: Fix!!!!
-            return RunState::Running;
+            return RunState::PlayerTurn;
         }
 
         if keyboard::is_key_pressed(ctx, KeyCode::Up)
@@ -90,7 +98,7 @@ pub fn player_input(gs: &mut State, ctx: &Context) -> RunState {
         {
             try_move_player(0, -1, &mut gs.ecs);
             // @TODO: Fix!!!!
-            return RunState::Running;
+            return RunState::PlayerTurn;
         }
 
         if keyboard::is_key_pressed(ctx, KeyCode::Down)
@@ -99,7 +107,7 @@ pub fn player_input(gs: &mut State, ctx: &Context) -> RunState {
         {
             try_move_player(0, 1, &mut gs.ecs);
             // @TODO: Fix!!!!
-            return RunState::Running;
+            return RunState::PlayerTurn;
         }
 
         // DIAGONALS
@@ -108,7 +116,7 @@ pub fn player_input(gs: &mut State, ctx: &Context) -> RunState {
         {
             try_move_player(1, -1, &mut gs.ecs);
             // @TODO: Fix!!!!
-            return RunState::Running;
+            return RunState::PlayerTurn;
         }
 
         if keyboard::is_key_pressed(ctx, KeyCode::Numpad7)
@@ -116,7 +124,7 @@ pub fn player_input(gs: &mut State, ctx: &Context) -> RunState {
         {
             try_move_player(-1, -1, &mut gs.ecs);
             // @TODO: Fix!!!!
-            return RunState::Running;
+            return RunState::PlayerTurn;
         }
 
         if keyboard::is_key_pressed(ctx, KeyCode::Numpad3)
@@ -124,7 +132,7 @@ pub fn player_input(gs: &mut State, ctx: &Context) -> RunState {
         {
             try_move_player(1, 1, &mut gs.ecs);
             // @TODO: Fix!!!!
-            return RunState::Running;
+            return RunState::PlayerTurn;
         }
 
         if keyboard::is_key_pressed(ctx, KeyCode::Numpad1)
@@ -132,9 +140,9 @@ pub fn player_input(gs: &mut State, ctx: &Context) -> RunState {
         {
             try_move_player(-1, 1, &mut gs.ecs);
             // @TODO: Fix!!!!
-            return RunState::Running;
+            return RunState::PlayerTurn;
         }
     }
-
-    RunState::Waiting
+    // If a key is pressed BUT is not one of the controlling keys then don't change state
+    RunState::AwaitingInput
 }

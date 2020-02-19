@@ -1,5 +1,5 @@
 extern crate specs;
-use super::{GridPosition, Map, Monster, Viewshed, WantsToMelee};
+use super::{GridPosition, Map, Monster, RunState, Viewshed, WantsToMelee};
 use specs::prelude::*;
 
 extern crate rltk;
@@ -12,6 +12,7 @@ impl<'a> System<'a> for MonsterAISystem {
         WriteExpect<'a, Map>,
         ReadExpect<'a, rltk::Point>, // Player pos
         ReadExpect<'a, Entity>,
+        ReadExpect<'a, RunState>,
         Entities<'a>,
         WriteStorage<'a, Viewshed>,
         ReadStorage<'a, Monster>,
@@ -24,12 +25,18 @@ impl<'a> System<'a> for MonsterAISystem {
             mut map,
             player_pos,
             player_entity,
+            runstate,
             entities,
             mut viewshed,
             monster,
             mut position,
             mut wants_to_melee,
         ) = data;
+
+        // Early exit if this is not Monster's turn
+        if *runstate != RunState::MonsterTurn {
+            return;
+        }
 
         for (entity, mut viewshed, _monster, mut pos) in
             (&entities, &mut viewshed, &monster, &mut position).join()
@@ -46,10 +53,8 @@ impl<'a> System<'a> for MonsterAISystem {
                         },
                     )
                     .expect("Unable to insert attack");
-            }
-
-            if viewshed.visible_tiles.contains(&*player_pos) {
-                // Get a path to player so we can follow him
+            } else if viewshed.visible_tiles.contains(&*player_pos) {
+                // Get a path to player so we can follow him and attack when close
 
                 let path = rltk::a_star_search(
                     map.xy_idx(pos.x, pos.y) as i32,
@@ -58,8 +63,13 @@ impl<'a> System<'a> for MonsterAISystem {
                 );
 
                 if path.success && path.steps.len() > 1 {
+                    let mut idx = map.xy_idx(pos.x, pos.y);
+                    map.blocked[idx] = false; // Release our current tile from blocked
                     pos.x = path.steps[1] as i32 % map.width;
                     pos.y = path.steps[1] as i32 / map.width;
+                    // Pathing  already takes care that we don't move on a blocked tile
+                    idx = map.xy_idx(pos.x, pos.y);
+                    map.blocked[idx] = true;
                     viewshed.dirty = true;
                 }
             }

@@ -36,13 +36,15 @@ use damage_system::DamageSystem;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState {
-    Waiting,
-    Running,
+    AwaitingInput,
+    PreRun,
+    PlayerTurn,
+    MonsterTurn,
 }
 
 pub struct State {
     pub ecs: World,
-    pub runstate: RunState,
+    // pub runstate: RunState,
 }
 
 impl State {
@@ -79,15 +81,49 @@ impl event::EventHandler for State {
             println!("Average FPS: {}", timer::fps(ctx));
         }
 
-        match self.runstate {
-            RunState::Running => {
+        // 'Extract' current runstate from ECS
+        let mut newrunstate;
+        {
+            let runstate = self.ecs.fetch::<RunState>();
+            newrunstate = *runstate;
+        }
+        
+        // Match it
+        match newrunstate {
+            RunState::PreRun => {
                 self.run_systems();
-                self.runstate = RunState::Waiting;
-            }
-            RunState::Waiting => {
-                self.runstate = player_input(self, ctx);
+                newrunstate = RunState::AwaitingInput;
+            },
+            RunState::AwaitingInput => {
+                // Any new state change is done in player input
+                newrunstate = player_input(self, ctx);
+
+            },
+            RunState::PlayerTurn => {
+                self.run_systems();
+                newrunstate = RunState::MonsterTurn;
+            },
+            RunState::MonsterTurn => {
+                self.run_systems();
+                newrunstate = RunState::AwaitingInput;
             }
         }
+
+        // Re-insert modified RunState into ECS
+        {
+            let mut runstate_writer = self.ecs.write_resource::<RunState>();
+            *runstate_writer = newrunstate;
+        }
+
+        // match self.runstate {
+        //     RunState::Running => {
+        //         self.run_systems();
+        //         self.runstate = RunState::Waiting;
+        //     }
+        //     RunState::Waiting => {
+        //         self.runstate = player_input(self, ctx);
+        //     }
+        // }
 
         // Delete dead entities
         damage_system::delete_the_dead(&mut self.ecs);
@@ -138,7 +174,7 @@ fn main() -> GameResult {
     // Create State with ECS world in it.
     let mut gs = State {
         ecs: World::new(),
-        runstate: RunState::Running,
+        // runstate: RunState::Running,
     };
 
     // Register components
@@ -159,7 +195,8 @@ fn main() -> GameResult {
     let (player_x, player_y) = map.rooms[0].center();
 
     // Create player
-    let player_entity = gs.ecs
+    let player_entity = gs
+        .ecs
         .create_entity()
         .with(GridPosition {
             x: player_x,
@@ -233,11 +270,9 @@ fn main() -> GameResult {
 
     // INSERT RESOURCES
     gs.ecs.insert(map);
-
-    // @TODO: Should this be an rltk::Point or something else?
-    gs.ecs.insert(rltk::Point::new(player_x, player_y));
+    gs.ecs.insert(rltk::Point::new(player_x, player_y)); // @TODO: Should this be an rltk::Point or something else?
     gs.ecs.insert(player_entity);
-
+    gs.ecs.insert(RunState::PreRun);
 
     // @TODO: Screen dims to use for (80 x 50 , tile size 16) = 1280 x 800
     let cb = ggez::ContextBuilder::new("THAT GAME - super simple", "Spiros Makris");

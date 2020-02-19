@@ -30,7 +30,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
                     let damage = i32::max(0, stats.power - target_stats.defense);
 
                     if damage == 0 {
-                        println!("{} is unable t hurt {}", &name.name, &target_name.name);
+                        println!("{} is unable to hurt {}", &name.name, &target_name.name);
                     } else {
                         println!(
                             "{} hits {}, for {} hp.",

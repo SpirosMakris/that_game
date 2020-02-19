@@ -12,7 +12,7 @@ impl<'a> System<'a> for VisibilitySystem {
         WriteExpect<'a, Map>,
         Entities<'a>,
         WriteStorage<'a, Viewshed>,
-        WriteStorage<'a, GridPosition>,
+        ReadStorage<'a, GridPosition>,
         ReadStorage<'a, Player>,
     );
 
