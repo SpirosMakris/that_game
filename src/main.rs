@@ -32,6 +32,9 @@ use melee_combat_system::MeleeCombatSystem;
 mod damage_system;
 use damage_system::DamageSystem;
 
+mod imgui_wrapper;
+use imgui_wrapper::ImGuiWrapper;
+
 // GAME STATE
 
 #[derive(PartialEq, Copy, Clone)]
@@ -44,7 +47,7 @@ pub enum RunState {
 
 pub struct State {
     pub ecs: World,
-    // pub runstate: RunState,
+    imgui_wrapper: ImGuiWrapper,
 }
 
 impl State {
@@ -171,10 +174,14 @@ impl event::EventHandler for State {
 }
 
 fn main() -> GameResult {
+    // @TODO: Screen dims to use for (80 x 50 , tile size 16) = 1280 x 800
+    let cb = ggez::ContextBuilder::new("THAT GAME - super simple", "Spiros Makris");
+    let (ctx, event_loop) = &mut cb.build()?;
+    
     // Create State with ECS world in it.
     let mut gs = State {
         ecs: World::new(),
-        // runstate: RunState::Running,
+        imgui_wrapper: ImGuiWrapper::new(&mut ctx) ,
     };
 
     // Register components
@@ -274,9 +281,7 @@ fn main() -> GameResult {
     gs.ecs.insert(player_entity);
     gs.ecs.insert(RunState::PreRun);
 
-    // @TODO: Screen dims to use for (80 x 50 , tile size 16) = 1280 x 800
-    let cb = ggez::ContextBuilder::new("THAT GAME - super simple", "Spiros Makris");
-    let (ctx, event_loop) = &mut cb.build()?;
+    
 
     event::run(ctx, event_loop, &mut gs)
 }
