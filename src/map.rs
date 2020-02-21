@@ -8,6 +8,10 @@ use super::Rect32;
 
 pub const GRID_TILE_SIZE: i32 = 8;
 
+const MAP_WIDTH: usize = 80;
+const MAP_HEIGHT: usize = 50;
+const MAP_COUNT: usize = MAP_HEIGHT * MAP_WIDTH;
+
 #[derive(PartialEq, Copy, Clone)]
 pub enum TileType {
     Wall,
@@ -82,14 +86,14 @@ impl Map {
     /// This gives a handful of random rooms and corridors joining them together.
     pub fn new_map_rooms_and_corridors() -> Map {
         let mut map = Map {
-            tiles: vec![TileType::Wall; 80 * 50],
+            tiles: vec![TileType::Wall; MAP_COUNT],
             rooms: Vec::new(),
-            width: 80,
-            height: 50,
-            revealed_tiles: vec![false; 80 * 50],
-            visible_tiles: vec![false; 80 * 50],
-            blocked: vec![false; 80 * 50],
-            tile_content: vec![Vec::new(); 80 * 50],
+            width: MAP_WIDTH as i32,
+            height: MAP_HEIGHT as i32,
+            revealed_tiles: vec![false; MAP_COUNT],
+            visible_tiles: vec![false; MAP_COUNT],
+            blocked: vec![false; MAP_COUNT],
+            tile_content: vec![Vec::new(); MAP_COUNT],
         };
 
         // @TODO: Remove. Just a test to see if we can actually render an empty map
@@ -105,8 +109,8 @@ impl Map {
             // Create a new room candidate
             let w = rng.range(MIN_SIZE, MAX_SIZE);
             let h = rng.range(MIN_SIZE, MAX_SIZE);
-            let x = rng.roll_dice(1, 80 - w - 1) - 1;
-            let y = rng.roll_dice(1, 50 - h - 1) - 1;
+            let x = rng.roll_dice(1, MAP_WIDTH as i32 - w - 1) - 1;   // @TODO: Fix this i32/usize nonsense
+            let y = rng.roll_dice(1, MAP_HEIGHT as i32 - h - 1) - 1;
 
             let new_room = Rect32::new(x, y, w, h);
 

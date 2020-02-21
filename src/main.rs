@@ -32,8 +32,8 @@ use melee_combat_system::MeleeCombatSystem;
 mod damage_system;
 use damage_system::DamageSystem;
 
-mod imgui_wrapper;
-use imgui_wrapper::ImGuiWrapper;
+// mod imgui_wrapper;
+// use imgui_wrapper::ImGuiWrapper;
 
 // GAME STATE
 
@@ -47,7 +47,7 @@ pub enum RunState {
 
 pub struct State {
     pub ecs: World,
-    imgui_wrapper: ImGuiWrapper,
+    // imgui_wrapper: ImGuiWrapper,
 }
 
 impl State {
@@ -181,7 +181,7 @@ fn main() -> GameResult {
     // Create State with ECS world in it.
     let mut gs = State {
         ecs: World::new(),
-        imgui_wrapper: ImGuiWrapper::new(&mut ctx) ,
+        // imgui_wrapper: ImGuiWrapper::new(&mut ctx) ,
     };
 
     // Register components
