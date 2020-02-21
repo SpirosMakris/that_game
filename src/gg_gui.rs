@@ -5,6 +5,7 @@ use ggez;
 use ggez::graphics as gfx;
 use ggez::{Context, GameResult};
 
+use super::na;
 use super::{CombatStats, Player};
 
 use crate::map::GRID_TILE_SIZE;
@@ -42,7 +43,17 @@ pub fn draw_ui(ecs: &World, ctx: &mut Context) -> GameResult {
     let fg_color = gfx::Color::new(1.0, 0.1, 0.1, 1.0);
     let bg_color = gfx::Color::new(0.1, 0.1, 0.1, 1.0);
     for (_player, stats) in (&players, &combat_stats).join() {
-      draw_health_bar(ctx, stats.hp, stats.max_hp, x as f32, y as f32, w as f32, h as f32, fg_color, bg_color)?;
+        draw_health_bar(
+            ctx,
+            stats.hp,
+            stats.max_hp,
+            x as f32,
+            y as f32,
+            w as f32,
+            h as f32,
+            fg_color,
+            bg_color,
+        )?;
     }
 
     Ok(())
@@ -63,22 +74,38 @@ fn draw_health_bar(
 
     // Draw the health bar
     let curr_health_width = {
-      let mut width = w * curr_health as f32 / max_health as f32;
-      if width < 0.0 { width = 0.0; }
-      width
+        let mut width = w * curr_health as f32 / max_health as f32;
+        if width < 0.0 {
+            width = 0.0;
+        }
+        width
     };
 
     let health_full_rect = gfx::Rect::new(x, y, w, h);
     let health_curr_rect = gfx::Rect::new(x, y, curr_health_width, h);
 
     let health_mesh = health_mb
-      .rectangle(gfx::DrawMode::fill(), health_full_rect, bg_color)
-      .rectangle(gfx::DrawMode::fill(), health_curr_rect, fg_color)
-      .build(ctx)?;
-    
+        .rectangle(gfx::DrawMode::fill(), health_full_rect, bg_color)
+        .rectangle(gfx::DrawMode::fill(), health_curr_rect, fg_color)
+        .build(ctx)?;
+    // Add the text overlay
+    let health_text = gfx::Text::new(gfx::TextFragment {
+        text: format!("{}/{}", curr_health, max_health),
+        scale: Some(gfx::Scale::uniform(10.0)),
+        ..Default::default()
+    });
+
+    gfx::queue_text(ctx, &health_text, na::Point2::new(x, y), None);
+
     // Render it
 
     gfx::draw(ctx, &health_mesh, gfx::DrawParam::default())?;
+    gfx::draw_queued_text(
+        ctx,
+        gfx::DrawParam::default(),
+        None,
+        gfx::FilterMode::Linear,
+    )?;
 
     Ok(())
 }
