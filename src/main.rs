@@ -34,6 +34,8 @@ use damage_system::DamageSystem;
 
 // mod imgui_wrapper;
 // use imgui_wrapper::ImGuiWrapper;
+mod gg_gui;
+use gg_gui as gui;
 
 // GAME STATE
 
@@ -167,6 +169,9 @@ impl event::EventHandler for State {
                 )?;
             }
         }
+
+        // Render GUI
+        gui::draw_ui(&self.ecs, ctx)?;
 
         gfx::present(ctx)?;
         Ok(())
