@@ -37,6 +37,8 @@ use damage_system::DamageSystem;
 mod gg_gui;
 use gg_gui as gui;
 
+mod gamelog;
+
 // GAME STATE
 
 #[derive(PartialEq, Copy, Clone)]
@@ -285,8 +287,8 @@ fn main() -> GameResult {
     gs.ecs.insert(rltk::Point::new(player_x, player_y)); // @TODO: Should this be an rltk::Point or something else?
     gs.ecs.insert(player_entity);
     gs.ecs.insert(RunState::PreRun);
+    gs.ecs.insert(gamelog::GameLog{ entries : vec!["Let's begin hero!!".to_string()] });
 
-    
 
     event::run(ctx, event_loop, &mut gs)
 }

@@ -8,6 +8,8 @@ use ggez::{Context, GameResult};
 use super::na;
 use super::{CombatStats, Player};
 
+use super::gamelog::GameLog;
+
 use crate::map::GRID_TILE_SIZE;
 
 pub fn draw_ui(ecs: &World, ctx: &mut Context) -> GameResult {
@@ -56,6 +58,15 @@ pub fn draw_ui(ecs: &World, ctx: &mut Context) -> GameResult {
         )?;
     }
 
+    let x: i32 = GRID_TILE_SIZE * 2; // @TODO @HARDCODED
+    let y: i32 = GRID_TILE_SIZE * 44; // @TODO @HARDCODED
+    let max_y: i32 = GRID_TILE_SIZE * 49;   // @TODO @HARDCODED
+
+
+    // Draw log
+    let log = ecs.fetch::<GameLog>();
+    draw_log(ctx, &log, x as f32, y as f32, max_y as f32)?;
+
     Ok(())
 }
 
@@ -98,14 +109,39 @@ fn draw_health_bar(
     gfx::queue_text(ctx, &health_text, na::Point2::new(x, y), None);
 
     // Render it
-
+    // Health mesh
     gfx::draw(ctx, &health_mesh, gfx::DrawParam::default())?;
+    // Health text
     gfx::draw_queued_text(
         ctx,
         gfx::DrawParam::default(),
         None,
         gfx::FilterMode::Linear,
     )?;
+
+    Ok(())
+}
+
+// @TODO: Pull text settings to a struct var?
+
+fn draw_log(ctx: &mut Context, log: &GameLog, x: f32, y: f32, max_y: f32) -> GameResult {
+    let mut log_text = &mut gfx::Text::new(gfx::TextFragment {
+        text: "Welcome to Rusty Roguelike".to_string(),
+        scale: Some(gfx::Scale::uniform(10.0)),
+        ..Default::default()
+    });
+
+    let mut y = y;    
+    for entry in log.entries.iter().rev() {
+        if y < max_y {
+            // tmp_string = entry.clone();
+            log_text = log_text.add(entry.clone());
+            gfx::queue_text(ctx, &log_text, na::Point2::new(x, y), None );
+        }
+        y += (1 * GRID_TILE_SIZE) as f32;  // @TODO @HARDCODED 
+    }
+    
+    gfx::draw_queued_text(ctx, gfx::DrawParam::default(), None, gfx::FilterMode::Linear)?;
 
     Ok(())
 }
