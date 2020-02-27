@@ -60,8 +60,7 @@ pub fn draw_ui(ecs: &World, ctx: &mut Context) -> GameResult {
 
     let x: i32 = GRID_TILE_SIZE * 2; // @TODO @HARDCODED
     let y: i32 = GRID_TILE_SIZE * 44; // @TODO @HARDCODED
-    let max_y: i32 = GRID_TILE_SIZE * 49;   // @TODO @HARDCODED
-
+    let max_y: i32 = GRID_TILE_SIZE * 49; // @TODO @HARDCODED
 
     // Draw log
     let log = ecs.fetch::<GameLog>();
@@ -125,23 +124,33 @@ fn draw_health_bar(
 // @TODO: Pull text settings to a struct var?
 
 fn draw_log(ctx: &mut Context, log: &GameLog, x: f32, y: f32, max_y: f32) -> GameResult {
-    let mut log_text = &mut gfx::Text::new(gfx::TextFragment {
-        text: "Welcome to Rusty Roguelike".to_string(),
-        scale: Some(gfx::Scale::uniform(10.0)),
-        ..Default::default()
-    });
+    if let Some(last_entry) = log.entries.last() {
+        // println!("{}", last_entry);
 
-    let mut y = y;    
-    for entry in log.entries.iter().rev() {
-        if y < max_y {
-            // tmp_string = entry.clone();
-            log_text = log_text.add(entry.clone());
-            gfx::queue_text(ctx, &log_text, na::Point2::new(x, y), None );
+        let mut log_text = &mut gfx::Text::new(gfx::TextFragment {
+            text: last_entry.clone(),
+            scale: Some(gfx::Scale::uniform(10.0)),
+            ..Default::default()
+        });
+
+        gfx::queue_text(ctx, &log_text, na::Point2::new(x, y), None);
+
+        let mut y = y;
+        for entry in log.entries.iter().rev().skip(1) {
+            if y < max_y {
+                y += (1 * GRID_TILE_SIZE) as f32; // @TODO @HARDCODED
+                log_text = log_text.add(entry.clone());
+                gfx::queue_text(ctx, &log_text, na::Point2::new(x, y), None);
+            }
         }
-        y += (1 * GRID_TILE_SIZE) as f32;  // @TODO @HARDCODED 
+
+        gfx::draw_queued_text(
+            ctx,
+            gfx::DrawParam::default(),
+            None,
+            gfx::FilterMode::Linear,
+        )?;
     }
-    
-    gfx::draw_queued_text(ctx, gfx::DrawParam::default(), None, gfx::FilterMode::Linear)?;
 
     Ok(())
 }
